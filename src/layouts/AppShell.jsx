@@ -1,338 +1,488 @@
 
-import { useState } from "react";
 import {
-  Bell,
-  ChevronDown,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import {
+  Link,
+  NavLink,
+  Outlet,
+  useLocation,
+  useNavigate,
+} from "react-router-dom";
+
+import {
+  useDispatch,
+  useSelector,
+} from "react-redux";
+
+import {
+  CheckSquare,
+  ChevronLeft,
+  ClipboardList,
   FolderKanban,
   LayoutDashboard,
-  ListTodo,
   LogOut,
   Menu,
   Settings,
   Users,
   X,
 } from "lucide-react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
 
-import { supabase } from "@/lib/supabaseClient";
-import { useGetMyProfileQuery } from "@/store/api/apiSlice";
+import {
+  Button,
+} from "@/components/ui/button";
 
 import ThemeToggle from "@/components/theme-toggle";
-import { Button } from "@/components/ui/button";
 
-const navigation = [
-  {
-    label: "Overview",
-    path: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    label: "Teams",
-    path: "/teams",
-    icon: Users,
-  },
-  {
-    label: "Projects",
-    path: "/projects",
-    icon: FolderKanban,
-  },
-  {
-    label: "Tasks",
-    path: "/tasks",
-    icon: ListTodo,
-  },
-  {
-    label: "Notifications",
-    path: "/notifications",
-    icon: Bell,
-  },
-];
+import {
+  supabase,
+} from "@/lib/supabaseClient";
 
-const secondaryNavigation = [
-  {
-    label: "Settings",
-    path: "/settings",
-    icon: Settings,
-  },
-];
+import {
+  apiSlice,
+  useGetMyProfileQuery,
+} from "@/store/api/apiSlice";
 
-function getInitials(name = "") {
-  const parts = name.trim().split(" ").filter(Boolean);
-
-  if (parts.length === 0) {
-    return "U";
-  }
-
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-
-  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-}
-
-function SidebarLink({ item, onNavigate }) {
-  const Icon = item.icon;
-
-  return (
-    <NavLink
-      to={item.path}
-      onClick={onNavigate}
-      className={({ isActive }) =>
-        [
-          "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
-          isActive
-            ? "bg-primary text-primary-foreground shadow-sm"
-            : "text-muted-foreground hover:bg-muted hover:text-foreground",
-        ].join(" ")
-      }
-    >
-      <Icon className="size-4.5 shrink-0" />
-      <span>{item.label}</span>
-    </NavLink>
-  );
-}
-
-function SidebarContent({ onNavigate }) {
-  return (
-    <div className="flex h-full flex-col">
-      <div className="px-5 pb-5 pt-6">
-        <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-xl bg-primary font-bold text-primary-foreground shadow-sm">
-            W
-          </div>
-
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold tracking-tight">
-              WorkFlow
-            </p>
-
-            <p className="truncate text-xs text-muted-foreground">
-              Project management
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-6 rounded-2xl bg-muted/60 p-3">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Current workspace
-          </p>
-
-          <div className="mt-2 flex items-center justify-between gap-2">
-            <div className="flex min-w-0 items-center gap-2">
-              <div className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-background text-xs font-semibold">
-                W
-              </div>
-
-              <span className="truncate text-sm font-medium">
-                My Workspace
-              </span>
-            </div>
-
-            <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
-          </div>
-        </div>
-      </div>
-
-      <div className="flex-1 overflow-y-auto px-4 pb-5">
-        <p className="mb-3 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Workspace
-        </p>
-
-        <nav className="space-y-1">
-          {navigation.map((item) => (
-            <SidebarLink
-              key={item.path}
-              item={item}
-              onNavigate={onNavigate}
-            />
-          ))}
-        </nav>
-
-        <p className="mb-3 mt-8 px-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-          Account
-        </p>
-
-        <nav className="space-y-1">
-          {secondaryNavigation.map((item) => (
-            <SidebarLink
-              key={item.path}
-              item={item}
-              onNavigate={onNavigate}
-            />
-          ))}
-        </nav>
-      </div>
-
-      <div className="p-4">
-        <div className="rounded-2xl bg-muted/50 p-3">
-          <div className="flex items-center gap-3">
-            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-              W
-            </div>
-
-            <div className="min-w-0">
-              <p className="truncate text-sm font-medium">
-                Your workspace
-              </p>
-
-              <p className="truncate text-xs text-muted-foreground">
-                Stay organized
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+import RealtimeSync from "@/components/RealtimeSync";
+import NotificationBell from "@/components/NotificationBell";
 
 export default function AppShell() {
-  const navigate = useNavigate();
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const navigate =
+    useNavigate();
 
-  const { user } = useSelector((state) => state.auth);
+  const location =
+    useLocation();
 
-  const { data: profile } = useGetMyProfileQuery();
+  const dispatch =
+    useDispatch();
+
+  const user =
+    useSelector(
+      (state) =>
+        state.auth.user
+    );
+
+  const [
+    mobileOpen,
+    setMobileOpen,
+  ] = useState(false);
+
+  // ==========================================================
+  // Profile
+  // ==========================================================
+
+  const {
+    data: profile,
+  } =
+    useGetMyProfileQuery(
+      user?.id,
+      {
+        skip:
+          !user?.id,
+      }
+    );
+
+  // ==========================================================
+  // Close mobile menu
+  // ==========================================================
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    function handleEscape(
+      event
+    ) {
+      if (
+        event.key === "Escape"
+      ) {
+        setMobileOpen(false);
+      }
+    }
+
+    window.addEventListener(
+      "keydown",
+      handleEscape
+    );
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handleEscape
+      );
+    };
+  }, []);
+
+  // ==========================================================
+  // Navigation
+  // ==========================================================
+
+  const navigationItems =
+    useMemo(
+      () => [
+        {
+          label: "Overview",
+          to: "/dashboard",
+          icon: LayoutDashboard,
+        },
+        {
+          label: "Teams",
+          to: "/teams",
+          icon: Users,
+        },
+        {
+          label: "Projects",
+          to: "/projects",
+          icon: FolderKanban,
+        },
+        {
+          label: "Tasks",
+          to: "/tasks",
+          icon: CheckSquare,
+        },
+        {
+          label: "Notifications",
+          to: "/notifications",
+          icon: ClipboardList,
+        },
+        {
+          label: "Settings",
+          to: "/settings",
+          icon: Settings,
+        },
+      ],
+      []
+    );
+
+  // ==========================================================
+  // Logout
+  // ==========================================================
+
+  async function handleLogout() {
+    try {
+      await supabase.auth.signOut({
+        scope: "local",
+      });
+
+      dispatch(
+        apiSlice.util.resetApiState()
+      );
+
+      navigate(
+        "/login",
+        {
+          replace: true,
+        }
+      );
+    } catch (error) {
+      console.error(
+        "Logout error:",
+        error
+      );
+    }
+  }
+
+  // ==========================================================
+  // User display
+  // ==========================================================
 
   const displayName =
     profile?.full_name ||
     profile?.username ||
-    user?.user_metadata?.full_name ||
-    user?.email?.split("@")[0] ||
+    user?.email ||
     "User";
 
-  const username =
-    profile?.username ||
-    user?.user_metadata?.username ||
-    "user";
+  const displayEmail =
+    user?.email ||
+    "";
 
-  const initials = getInitials(displayName);
+  // ==========================================================
+  // Sidebar
+  // ==========================================================
 
-  async function handleLogout() {
-    await supabase.auth.signOut();
+  function SidebarContent({
+    mobile = false,
+  }) {
+    return (
+      <div className="flex h-full flex-col">
+        {/* Logo */}
 
-    setMobileOpen(false);
-    navigate("/login", { replace: true });
-  }
+        <div className="flex h-16 items-center justify-between border-b px-5">
+          <Link
+            to="/dashboard"
+            className="flex items-center gap-2"
+          >
+            <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <ClipboardList className="size-5" />
+            </div>
 
-  function goToNotifications() {
-    navigate("/notifications");
+            <div className="leading-none">
+              <div className="font-semibold tracking-tight">
+                WorkFlow
+              </div>
+
+              <div className="mt-1 text-[11px] text-muted-foreground">
+                Workspace
+              </div>
+            </div>
+          </Link>
+
+          {mobile && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() =>
+                setMobileOpen(
+                  false
+                )
+              }
+              aria-label="Close navigation"
+            >
+              <X className="size-5" />
+            </Button>
+          )}
+        </div>
+
+        {/* Navigation */}
+
+        <nav className="flex-1 overflow-y-auto p-3">
+          <div className="space-y-1">
+            {navigationItems.map(
+              (item) => {
+                const Icon =
+                  item.icon;
+
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({
+                      isActive,
+                    }) =>
+                      [
+                        "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
+                        isActive
+                          ? "bg-primary text-primary-foreground shadow-sm"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                      ].join(" ")
+                    }
+                  >
+                    {({
+                      isActive,
+                    }) => (
+                      <>
+                        <Icon
+                          className={[
+                            "size-4 shrink-0",
+                            isActive
+                              ? "text-primary-foreground"
+                              : "text-muted-foreground group-hover:text-foreground",
+                          ].join(" ")}
+                        />
+
+                        <span>
+                          {item.label}
+                        </span>
+                      </>
+                    )}
+                  </NavLink>
+                );
+              }
+            )}
+          </div>
+        </nav>
+
+        {/* User */}
+
+        <div className="border-t p-3">
+          <div className="rounded-xl bg-muted/50 p-3">
+            <div className="flex items-center gap-3">
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                {displayName
+                  .charAt(0)
+                  .toUpperCase()}
+              </div>
+
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">
+                  {displayName}
+                </p>
+
+                <p className="truncate text-xs text-muted-foreground">
+                  {displayEmail}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={
+                  handleLogout
+                }
+                className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-background hover:text-destructive"
+                aria-label="Logout"
+                title="Logout"
+              >
+                <LogOut className="size-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
-    <div className="min-h-svh bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground">
+      {/* Realtime */}
+
+      <RealtimeSync />
+
       {/* Desktop Sidebar */}
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 bg-background md:block">
+
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r bg-background md:block">
         <SidebarContent />
       </aside>
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Overlay */}
+
       {mobileOpen && (
-        <>
-          <button
-            type="button"
-            aria-label="Close navigation"
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-[2px] md:hidden"
-            onClick={() => setMobileOpen(false)}
-          />
-
-          <aside className="fixed inset-y-0 left-0 z-50 w-[290px] bg-background shadow-2xl md:hidden">
-            <SidebarContent
-              onNavigate={() => setMobileOpen(false)}
-            />
-
-            <button
-              type="button"
-              aria-label="Close navigation"
-              className="absolute right-4 top-5 rounded-lg p-2 text-muted-foreground transition hover:bg-muted hover:text-foreground"
-              onClick={() => setMobileOpen(false)}
-            >
-              <X className="size-5" />
-            </button>
-          </aside>
-        </>
+        <button
+          type="button"
+          aria-label="Close navigation"
+          onClick={() =>
+            setMobileOpen(
+              false
+            )
+          }
+          className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] md:hidden"
+        />
       )}
 
+      {/* Mobile Sidebar */}
+
+      <aside
+        className={[
+          "fixed inset-y-0 left-0 z-50 w-72 border-r bg-background shadow-xl transition-transform duration-200 md:hidden",
+          mobileOpen
+            ? "translate-x-0"
+            : "-translate-x-full",
+        ].join(" ")}
+      >
+        <SidebarContent
+          mobile
+        />
+      </aside>
+
+      {/* Main Area */}
+
       <div className="md:pl-64">
-        {/* Topbar */}
-        <header className="sticky top-0 z-30 bg-background/90 backdrop-blur-xl">
-          <div className="flex h-[72px] items-center justify-between px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-3">
+        {/* Header */}
+
+        <header className="sticky top-0 z-20 border-b bg-background/85 backdrop-blur-xl">
+          <div className="flex h-16 items-center justify-between px-4 md:px-6">
+            {/* Left */}
+
+            <div className="flex items-center gap-2">
               <Button
-                type="button"
                 variant="ghost"
                 size="icon"
+                className="md:hidden"
+                onClick={() =>
+                  setMobileOpen(
+                    true
+                  )
+                }
                 aria-label="Open navigation"
-                className="rounded-xl md:hidden"
-                onClick={() => setMobileOpen(true)}
               >
                 <Menu className="size-5" />
               </Button>
 
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">
+              <div className="hidden items-center gap-2 text-sm text-muted-foreground sm:flex">
+                <span>
                   Workspace
-                </p>
+                </span>
 
-                <h2 className="text-base font-semibold tracking-tight sm:text-lg">
-                  My Workspace
-                </h2>
+                <ChevronLeft className="size-4 rotate-180" />
+
+                <span className="text-foreground">
+                  {location.pathname ===
+                  "/dashboard"
+                    ? "Overview"
+                    : navigationItems.find(
+                        (item) =>
+                          location.pathname.startsWith(
+                            item.to
+                          )
+                      )?.label ||
+                      "Workspace"}
+                </span>
+              </div>
+
+              <div className="text-sm font-medium sm:hidden">
+                WorkFlow
               </div>
             </div>
 
+            {/* Right */}
+
             <div className="flex items-center gap-1">
+              {/* Theme */}
+
               <ThemeToggle />
 
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                aria-label="Notifications"
-                className="rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
-                onClick={goToNotifications}
-              >
-                <Bell className="size-4.5" />
-              </Button>
+              {/* Notifications */}
 
-              <div className="mx-2 hidden h-7 w-px bg-border sm:block" />
+              <NotificationBell />
 
-              <div className="hidden items-center gap-3 sm:flex">
+              {/* User */}
+
+              <div className="ml-2 hidden items-center gap-3 sm:flex">
                 <div className="text-right">
-                  <p className="text-sm font-medium">
+                  <p className="max-w-40 truncate text-sm font-medium">
                     {displayName}
                   </p>
 
-                  <p className="text-xs text-muted-foreground">
-                    @{username}
+                  <p className="max-w-40 truncate text-xs text-muted-foreground">
+                    {displayEmail}
                   </p>
                 </div>
 
-                <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-xs font-semibold text-primary">
-                  {initials}
+                <div className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                  {displayName
+                    .charAt(0)
+                    .toUpperCase()}
                 </div>
               </div>
 
+              {/* Mobile logout */}
+
               <Button
-                type="button"
                 variant="ghost"
                 size="icon"
-                aria-label="Log out"
-                title="Log out"
-                className="ml-1 rounded-lg text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                onClick={handleLogout}
+                className="sm:hidden"
+                onClick={
+                  handleLogout
+                }
+                aria-label="Logout"
+                title="Logout"
               >
-                <LogOut className="size-4.5" />
+                <LogOut className="size-5" />
               </Button>
             </div>
           </div>
         </header>
 
-        {/* Main content */}
-        <main className="min-h-[calc(100svh-72px)]">
+        {/* Page */}
+
+        <main className="min-h-[calc(100vh-4rem)]">
           <Outlet />
         </main>
       </div>
     </div>
   );
 }
+

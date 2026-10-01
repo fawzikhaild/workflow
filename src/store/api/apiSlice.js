@@ -1,269 +1,145 @@
 
 import {
-  createApi,
-  fakeBaseQuery,
-} from "@reduxjs/toolkit/query/react";
+  apiSlice as baseApi,
+} from "./apiBase";
 
-import { supabase } from "@/lib/supabaseClient";
 
-export const apiSlice = createApi({
-  reducerPath: "api",
-
-  baseQuery: fakeBaseQuery(),
-
-  tagTypes: [
-    "Profile",
-    "Teams",
-    "Projects",
-    "Tasks",
-    "Comments",
-    "Notifications",
-  ],
-
-  endpoints: (builder) => ({
-    // =========================================================
-    // PROFILE
-    // =========================================================
-
-    getMyProfile: builder.query({
-      async queryFn() {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError) {
-          return {
-            error: {
-              status: "AUTH_ERROR",
-              message: userError.message,
-            },
-          };
-        }
-
-        if (!user) {
-          return {
-            error: {
-              status: "UNAUTHORIZED",
-              message: "You are not authenticated.",
-            },
-          };
-        }
-
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-
-        if (error) {
-          return {
-            error: {
-              status: error.code || "PROFILE_ERROR",
-              message: error.message,
-            },
-          };
-        }
-
-        return {
-          data,
-        };
-      },
-
-      providesTags: ["Profile"],
-    }),
-
-    // =========================================================
-    // TEAMS
-    // =========================================================
-
-    getMyTeams: builder.query({
-      async queryFn() {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError) {
-          return {
-            error: {
-              status: "AUTH_ERROR",
-              message: userError.message,
-            },
-          };
-        }
-
-        if (!user) {
-          return {
-            error: {
-              status: "UNAUTHORIZED",
-              message: "You are not authenticated.",
-            },
-          };
-        }
-
-        const { data, error } = await supabase
-          .from("team_members")
-          .select(`
-            role,
-            created_at,
-            teams (
-              id,
-              name,
-              description,
-              owner_id,
-              created_at,
-              updated_at
-            )
-          `)
-          .eq("user_id", user.id)
-          .order("created_at", {
-            ascending: false,
-          });
-
-        if (error) {
-          return {
-            error: {
-              status: error.code || "TEAMS_ERROR",
-              message: error.message,
-            },
-          };
-        }
-
-        return {
-          data: (data || [])
-            .filter((item) => item.teams)
-            .map((item) => ({
-              ...item.teams,
-              memberRole: item.role,
-            })),
-        };
-      },
-
-      providesTags: ["Teams"],
-    }),
-
-    createTeam: builder.mutation({
-      async queryFn({
-        name,
-        description = "",
-      }) {
-        const {
-          data: { user },
-          error: userError,
-        } = await supabase.auth.getUser();
-
-        if (userError) {
-          return {
-            error: {
-              status: "AUTH_ERROR",
-              message: userError.message,
-            },
-          };
-        }
-
-        if (!user) {
-          return {
-            error: {
-              status: "UNAUTHORIZED",
-              message: "You are not authenticated.",
-            },
-          };
-        }
-
-        const { data, error } = await supabase
-          .from("teams")
-          .insert({
-            owner_id: user.id,
-            name: name.trim(),
-            description:
-              description.trim() || null,
-          })
-          .select()
-          .single();
-
-        if (error) {
-          return {
-            error: {
-              status: error.code || "CREATE_TEAM_ERROR",
-              message: error.message,
-            },
-          };
-        }
-
-        return {
-          data,
-        };
-      },
-
-      invalidatesTags: ["Teams"],
-    }),
-
-    updateTeam: builder.mutation({
-      async queryFn({
-        id,
-        name,
-        description = "",
-      }) {
-        const { data, error } = await supabase
-          .from("teams")
-          .update({
-            name: name.trim(),
-            description:
-              description.trim() || null,
-          })
-          .eq("id", id)
-          .select()
-          .single();
-
-        if (error) {
-          return {
-            error: {
-              status: error.code || "UPDATE_TEAM_ERROR",
-              message: error.message,
-            },
-          };
-        }
-
-        return {
-          data,
-        };
-      },
-
-      invalidatesTags: ["Teams"],
-    }),
-
-    deleteTeam: builder.mutation({
-      async queryFn(id) {
-        const { error } = await supabase
-          .from("teams")
-          .delete()
-          .eq("id", id);
-
-        if (error) {
-          return {
-            error: {
-              status: error.code || "DELETE_TEAM_ERROR",
-              message: error.message,
-            },
-          };
-        }
-
-        return {
-          data: id,
-        };
-      },
-
-      invalidatesTags: ["Teams"],
-    }),
-  }),
-});
-
-export const {
+import {
   useGetMyProfileQuery,
+} from "./profileApi";
+
+
+import {
   useGetMyTeamsQuery,
   useCreateTeamMutation,
   useUpdateTeamMutation,
   useDeleteTeamMutation,
-} = apiSlice;
+} from "./teamsApi";
+
+
+import {
+  useGetTeamMembersQuery,
+  useAddTeamMemberMutation,
+  useUpdateTeamMemberRoleMutation,
+  useRemoveTeamMemberMutation,
+} from "./teamMembersApi";
+
+
+import {
+  useGetMyProjectsQuery,
+  useGetProjectByIdQuery,
+  useCreateProjectMutation,
+  useUpdateProjectMutation,
+  useDeleteProjectMutation,
+} from "./ProjectsApi";
+
+
+import {
+  useGetProjectTasksQuery,
+  useCreateTaskMutation,
+  useUpdateTaskMutation,
+  useDeleteTaskMutation,
+} from "./tasksApi";
+
+
+import {
+  useGetTaskByIdQuery,
+} from "./taskDetailsApi";
+
+
+import {
+  useGetTaskCommentsQuery,
+  useAddTaskCommentMutation,
+  useDeleteTaskCommentMutation,
+} from "./commentsApi";
+
+
+import {
+  useGetTaskActivityQuery,
+} from "./activityApi";
+
+
+import {
+  useGetMyNotificationsQuery,
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
+} from "./notificationsApi";
+
+
+import {
+  useGetMyProjectAccessQuery,
+} from "./projectPermissionsApi";
+
+
+export const apiSlice =
+  baseApi;
+
+
+export {
+  // Profile
+
+  useGetMyProfileQuery,
+
+
+  // Teams
+
+  useGetMyTeamsQuery,
+  useCreateTeamMutation,
+  useUpdateTeamMutation,
+  useDeleteTeamMutation,
+
+
+  // Team Members
+
+  useGetTeamMembersQuery,
+  useAddTeamMemberMutation,
+  useUpdateTeamMemberRoleMutation,
+  useRemoveTeamMemberMutation,
+
+
+  // Projects
+
+  useGetMyProjectsQuery,
+  useGetProjectByIdQuery,
+  useCreateProjectMutation,
+  useUpdateProjectMutation,
+  useDeleteProjectMutation,
+
+
+  // Project Permissions
+
+  useGetMyProjectAccessQuery,
+
+
+  // Tasks
+
+  useGetProjectTasksQuery,
+  useCreateTaskMutation,
+  useUpdateTaskMutation,
+  useDeleteTaskMutation,
+
+
+  // Task Details
+
+  useGetTaskByIdQuery,
+
+
+  // Comments
+
+  useGetTaskCommentsQuery,
+  useAddTaskCommentMutation,
+  useDeleteTaskCommentMutation,
+
+
+  // Activity
+
+  useGetTaskActivityQuery,
+
+
+  // Notifications
+
+  useGetMyNotificationsQuery,
+  useMarkNotificationReadMutation,
+  useMarkAllNotificationsReadMutation,
+};
 

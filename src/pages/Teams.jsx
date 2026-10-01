@@ -1,20 +1,23 @@
 
-import { useEffect, useState } from "react";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "motion/react";
-import { useForm } from "react-hook-form";
-import { z } from "zod";
 import {
   Crown,
   Edit3,
-  FolderKanban,
   LoaderCircle,
-  MoreHorizontal,
   Plus,
   Shield,
   Trash2,
   Users,
 } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  skipToken,
+} from "@reduxjs/toolkit/query/react";
+import { useSelector } from "react-redux";
 
 import {
   useCreateTeamMutation,
@@ -103,11 +106,30 @@ function TeamIcon({ role }) {
 
 export default function Teams() {
   const {
+    user,
+    initialized,
+  } = useSelector(
+    (state) => state.auth
+  );
+
+  /*
+   * Do not start the teams query until
+   * AuthSync has finished and a valid user ID exists.
+   */
+  const teamsQueryArg =
+    initialized && user?.id
+      ? user.id
+      : skipToken;
+
+  const {
     data: teams = [],
     isLoading,
+    isFetching,
     isError,
     error,
-  } = useGetMyTeamsQuery();
+  } = useGetMyTeamsQuery(
+    teamsQueryArg
+  );
 
   const [createTeam, createState] =
     useCreateTeamMutation();
@@ -118,25 +140,41 @@ export default function Teams() {
   const [deleteTeam, deleteState] =
     useDeleteTeamMutation();
 
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingTeam, setEditingTeam] =
-    useState(null);
+  const [
+    dialogOpen,
+    setDialogOpen,
+  ] = useState(false);
 
-  const [deleteDialogOpen, setDeleteDialogOpen] =
-    useState(false);
+  const [
+    editingTeam,
+    setEditingTeam,
+  ] = useState(null);
 
-  const [teamToDelete, setTeamToDelete] =
-    useState(null);
+  const [
+    deleteDialogOpen,
+    setDeleteDialogOpen,
+  ] = useState(false);
 
-  const [formError, setFormError] = useState("");
+  const [
+    teamToDelete,
+    setTeamToDelete,
+  ] = useState(null);
+
+  const [
+    formError,
+    setFormError,
+  ] = useState("");
 
   const {
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: {
+      errors,
+    },
   } = useForm({
-    resolver: zodResolver(teamSchema),
+    resolver:
+      zodResolver(teamSchema),
 
     defaultValues: {
       name: "",
@@ -147,9 +185,11 @@ export default function Teams() {
   useEffect(() => {
     if (editingTeam) {
       reset({
-        name: editingTeam.name || "",
+        name:
+          editingTeam.name || "",
         description:
-          editingTeam.description || "",
+          editingTeam.description ||
+          "",
       });
 
       return;
@@ -159,15 +199,20 @@ export default function Teams() {
       name: "",
       description: "",
     });
-  }, [editingTeam, reset]);
+  }, [
+    editingTeam,
+    reset,
+  ]);
 
   function openCreateDialog() {
     setEditingTeam(null);
     setFormError("");
+
     reset({
       name: "",
       description: "",
     });
+
     setDialogOpen(true);
   }
 
@@ -188,7 +233,11 @@ export default function Teams() {
     setDialogOpen(false);
     setEditingTeam(null);
     setFormError("");
-    reset();
+
+    reset({
+      name: "",
+      description: "",
+    });
   }
 
   async function onSubmit(values) {
@@ -199,18 +248,24 @@ export default function Teams() {
         await updateTeam({
           id: editingTeam.id,
           name: values.name,
-          description: values.description,
+          description:
+            values.description,
         }).unwrap();
       } else {
         await createTeam({
           name: values.name,
-          description: values.description,
+          description:
+            values.description,
         }).unwrap();
       }
 
       setDialogOpen(false);
       setEditingTeam(null);
-      reset();
+
+      reset({
+        name: "",
+        description: "",
+      });
     } catch (mutationError) {
       setFormError(
         getErrorMessage(
@@ -248,18 +303,68 @@ export default function Teams() {
     }
   }
 
+  /*
+   * Wait for authentication state
+   * before rendering the teams data.
+   */
+  if (!initialized) {
+    return (
+      <main className="flex min-h-full items-center justify-center px-4 py-16">
+        <LoaderCircle className="size-7 animate-spin text-primary" />
+      </main>
+    );
+  }
+
+  /*
+   * Auth has initialized but user is not available.
+   * ProtectedRoute should normally handle this case.
+   */
+  if (!user?.id) {
+    return (
+      <main className="flex min-h-full items-center justify-center px-4 py-16">
+        <div className="max-w-md text-center">
+          <Users className="mx-auto size-8 text-muted-foreground" />
+
+          <h1 className="mt-4 text-xl font-semibold">
+            Authentication required
+          </h1>
+
+          <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            Please sign in again to access your teams.
+          </p>
+        </div>
+      </main>
+    );
+  }
+
+  /*
+   * Loading / fetching after account changes.
+   */
+  if (isLoading || isFetching) {
+    return (
+      <main className="flex min-h-full items-center justify-center px-4 py-16">
+        <LoaderCircle className="size-7 animate-spin text-primary" />
+      </main>
+    );
+  }
+
   const ownedTeams = teams.filter(
-    (team) => team.memberRole === "owner"
+    (team) =>
+      team.memberRole === "owner"
   ).length;
 
   const adminTeams = teams.filter(
-    (team) => team.memberRole === "admin"
+    (team) =>
+      team.memberRole === "admin"
   ).length;
 
   return (
     <main className="min-h-full px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-7xl">
-        {/* Header */}
+        {/* ====================================================
+            Header
+        ==================================================== */}
+
         <motion.div
           initial={{
             opacity: 0,
@@ -284,14 +389,16 @@ export default function Teams() {
             </h1>
 
             <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-              Create and manage the teams that
-              collaborate on your projects.
+              Create teams, manage members, and organize
+              collaborative workspaces.
             </p>
           </div>
 
           <Button
             type="button"
-            onClick={openCreateDialog}
+            onClick={
+              openCreateDialog
+            }
             className="w-full sm:w-auto"
           >
             <Plus className="size-4" />
@@ -299,109 +406,70 @@ export default function Teams() {
           </Button>
         </motion.div>
 
-        {/* Stats */}
+        {/* ====================================================
+            Stats
+        ==================================================== */}
+
         <div className="mt-8 grid gap-4 sm:grid-cols-3">
-          <motion.div
-            initial={{
-              opacity: 0,
-              y: 14,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            transition={{
-              duration: 0.4,
-              delay: 0.05,
-            }}
-          >
-            <Card>
-              <CardContent className="flex items-center gap-4 p-5">
-                <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                  <Users className="size-5" />
-                </div>
+          <Card>
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Users className="size-5" />
+              </div>
 
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Total teams
-                  </p>
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Total teams
+                </p>
 
-                  <p className="mt-1 text-2xl font-semibold">
-                    {teams.length}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+                <p className="mt-1 text-2xl font-semibold">
+                  {teams.length}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
-          <motion.div
-            initial={{
-              opacity: 0,
-              y: 14,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            transition={{
-              duration: 0.4,
-              delay: 0.1,
-            }}
-          >
-            <Card>
-              <CardContent className="flex items-center gap-4 p-5">
-                <div className="flex size-11 items-center justify-center rounded-xl bg-muted text-foreground">
-                  <Crown className="size-5" />
-                </div>
+          <Card>
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="flex size-11 items-center justify-center rounded-xl bg-muted">
+                <Crown className="size-5" />
+              </div>
 
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Teams I own
-                  </p>
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Teams I own
+                </p>
 
-                  <p className="mt-1 text-2xl font-semibold">
-                    {ownedTeams}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+                <p className="mt-1 text-2xl font-semibold">
+                  {ownedTeams}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
-          <motion.div
-            initial={{
-              opacity: 0,
-              y: 14,
-            }}
-            animate={{
-              opacity: 1,
-              y: 0,
-            }}
-            transition={{
-              duration: 0.4,
-              delay: 0.15,
-            }}
-          >
-            <Card>
-              <CardContent className="flex items-center gap-4 p-5">
-                <div className="flex size-11 items-center justify-center rounded-xl bg-muted text-foreground">
-                  <Shield className="size-5" />
-                </div>
+          <Card>
+            <CardContent className="flex items-center gap-4 p-5">
+              <div className="flex size-11 items-center justify-center rounded-xl bg-muted">
+                <Shield className="size-5" />
+              </div>
 
-                <div>
-                  <p className="text-sm text-muted-foreground">
-                    Admin teams
-                  </p>
+              <div>
+                <p className="text-sm text-muted-foreground">
+                  Admin teams
+                </p>
 
-                  <p className="mt-1 text-2xl font-semibold">
-                    {adminTeams}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
+                <p className="mt-1 text-2xl font-semibold">
+                  {adminTeams}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Teams */}
+        {/* ====================================================
+            Teams
+        ==================================================== */}
+
         <motion.section
           initial={{
             opacity: 0,
@@ -413,13 +481,15 @@ export default function Teams() {
           }}
           transition={{
             duration: 0.4,
-            delay: 0.2,
+            delay: 0.08,
           }}
           className="mt-8"
         >
           <Card>
             <CardHeader>
-              <CardTitle>Your teams</CardTitle>
+              <CardTitle>
+                Your teams
+              </CardTitle>
 
               <CardDescription>
                 All teams connected to your account.
@@ -427,11 +497,7 @@ export default function Teams() {
             </CardHeader>
 
             <CardContent>
-              {isLoading ? (
-                <div className="flex items-center justify-center py-16">
-                  <LoaderCircle className="size-7 animate-spin text-primary" />
-                </div>
-              ) : isError ? (
+              {isError ? (
                 <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-5">
                   <p className="text-sm text-destructive">
                     {getErrorMessage(
@@ -452,13 +518,15 @@ export default function Teams() {
 
                   <p className="mt-2 max-w-md text-sm leading-6 text-muted-foreground">
                     Create your first team to start
-                    organizing members, projects,
-                    and tasks.
+                    organizing members, projects, and
+                    tasks.
                   </p>
 
                   <Button
                     type="button"
-                    onClick={openCreateDialog}
+                    onClick={
+                      openCreateDialog
+                    }
                     className="mt-6"
                   >
                     <Plus className="size-4" />
@@ -467,113 +535,113 @@ export default function Teams() {
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                  {teams.map((team, index) => {
-                    const canEdit =
-                      team.memberRole === "owner" ||
-                      team.memberRole === "admin";
+                  {teams.map(
+                    (team, index) => {
+                      const canEdit =
+                        team.memberRole ===
+                          "owner" ||
+                        team.memberRole ===
+                          "admin";
 
-                    const canDelete =
-                      team.memberRole === "owner";
+                      const canDelete =
+                        team.memberRole ===
+                        "owner";
 
-                    return (
-                      <motion.div
-                        key={team.id}
-                        initial={{
-                          opacity: 0,
-                          y: 10,
-                        }}
-                        animate={{
-                          opacity: 1,
-                          y: 0,
-                        }}
-                        transition={{
-                          duration: 0.3,
-                          delay: index * 0.04,
-                        }}
-                      >
-                        <Card className="h-full transition-all hover:-translate-y-0.5 hover:shadow-md">
-                          <CardContent className="flex h-full flex-col p-5">
-                            <div className="flex items-start justify-between gap-4">
-                              <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                                <TeamIcon
-                                  role={team.memberRole}
-                                />
+                      return (
+                        <motion.div
+                          key={team.id}
+                          initial={{
+                            opacity: 0,
+                            y: 10,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            y: 0,
+                          }}
+                          transition={{
+                            duration: 0.3,
+                            delay:
+                              index * 0.04,
+                          }}
+                        >
+                          <Card className="h-full transition-all hover:-translate-y-0.5 hover:shadow-lg">
+                            <CardContent className="flex h-full flex-col p-5">
+                              <div className="flex items-start justify-between gap-4">
+                                <div className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                  <TeamIcon
+                                    role={
+                                      team.memberRole
+                                    }
+                                  />
+                                </div>
+
+                                <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium capitalize">
+                                  {
+                                    team.memberRole
+                                  }
+                                </span>
                               </div>
 
-                              {(canEdit ||
-                                canDelete) && (
-                                <div className="flex items-center gap-1">
-                                  {canEdit && (
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      title="Edit team"
-                                      aria-label="Edit team"
-                                      onClick={() =>
-                                        openEditDialog(
-                                          team
-                                        )
-                                      }
-                                    >
-                                      <Edit3 className="size-4" />
-                                    </Button>
-                                  )}
-
-                                  {canDelete && (
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="icon"
-                                      title="Delete team"
-                                      aria-label="Delete team"
-                                      className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                                      onClick={() =>
-                                        openDeleteDialog(
-                                          team
-                                        )
-                                      }
-                                    >
-                                      <Trash2 className="size-4" />
-                                    </Button>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-
-                            <div className="mt-5">
-                              <div className="flex items-center gap-2">
+                              <div className="mt-5">
                                 <h3 className="truncate text-base font-semibold">
                                   {team.name}
                                 </h3>
 
-                                <span className="shrink-0 rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium capitalize">
-                                  {team.memberRole}
-                                </span>
+                                <p className="mt-2 min-h-12 text-sm leading-6 text-muted-foreground">
+                                  {team.description ||
+                                    "No description provided."}
+                                </p>
                               </div>
 
-                              <p className="mt-2 min-h-12 text-sm leading-6 text-muted-foreground">
-                                {team.description ||
-                                  "No description provided."}
-                              </p>
-                            </div>
+                              <div className="mt-auto flex items-center gap-2 pt-6">
+                                <Link
+                                  to={`/teams/${team.id}`}
+                                  className="inline-flex h-9 flex-1 items-center justify-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+                                >
+                                  Manage team
+                                </Link>
 
-                            <div className="mt-auto flex items-center justify-between pt-6 text-xs text-muted-foreground">
-                              <div className="flex items-center gap-1.5">
-                                <Users className="size-3.5" />
-                                Team workspace
-                              </div>
+                                {canEdit && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    title="Edit team"
+                                    aria-label="Edit team"
+                                    onClick={() =>
+                                      openEditDialog(
+                                        team
+                                      )
+                                    }
+                                  >
+                                    <Edit3 className="size-4" />
+                                  </Button>
+                                )}
 
-                              <div className="flex items-center gap-1.5">
-                                <FolderKanban className="size-3.5" />
-                                Projects
+                                {canDelete && (
+                                  <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    title="Delete team"
+                                    aria-label="Delete team"
+                                    className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                                    onClick={() =>
+                                      openDeleteDialog(
+                                        team
+                                      )
+                                    }
+                                  >
+                                    <Trash2 className="size-4" />
+                                  </Button>
+                                )}
                               </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    );
-                  })}
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      );
+                    }
+                  )}
                 </div>
               )}
             </CardContent>
@@ -581,10 +649,15 @@ export default function Teams() {
         </motion.section>
       </div>
 
-      {/* Create / Edit Dialog */}
+      {/* ======================================================
+          Create / Edit Dialog
+      ====================================================== */}
+
       <Dialog
         open={dialogOpen}
-        onOpenChange={setDialogOpen}
+        onOpenChange={
+          setDialogOpen
+        }
       >
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
@@ -602,7 +675,9 @@ export default function Teams() {
           </DialogHeader>
 
           <form
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={handleSubmit(
+              onSubmit
+            )}
             className="space-y-5"
           >
             <div className="space-y-2">
@@ -632,13 +707,19 @@ export default function Teams() {
               <textarea
                 id="team-description"
                 placeholder="What does this team work on?"
-                {...register("description")}
-                className="flex min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
+                {...register(
+                  "description"
+                )}
+                className="flex min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               />
 
               {errors.description && (
                 <p className="text-sm text-destructive">
-                  {errors.description.message}
+                  {
+                    errors
+                      .description
+                      .message
+                  }
                 </p>
               )}
             </div>
@@ -655,7 +736,9 @@ export default function Teams() {
               <Button
                 type="button"
                 variant="outline"
-                onClick={closeDialog}
+                onClick={
+                  closeDialog
+                }
                 disabled={
                   createState.isLoading ||
                   updateState.isLoading
@@ -675,13 +758,12 @@ export default function Teams() {
                 updateState.isLoading ? (
                   <>
                     <LoaderCircle className="size-4 animate-spin" />
-                    {editingTeam
-                      ? "Saving..."
-                      : "Creating..."}
+                    Saving...
                   </>
                 ) : (
                   <>
                     <Plus className="size-4" />
+
                     {editingTeam
                       ? "Save changes"
                       : "Create team"}
@@ -693,10 +775,15 @@ export default function Teams() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* ======================================================
+          Delete Confirmation
+      ====================================================== */}
+
       <AlertDialog
         open={deleteDialogOpen}
-        onOpenChange={setDeleteDialogOpen}
+        onOpenChange={
+          setDeleteDialogOpen
+        }
       >
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -706,21 +793,28 @@ export default function Teams() {
 
             <AlertDialogDescription>
               {teamToDelete
-                ? `This will permanently delete "${teamToDelete.name}" and its team membership data. This action cannot be undone.`
+                ? `This will permanently delete "${teamToDelete.name}" and its team membership data.`
                 : "This action cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
           <AlertDialogFooter>
             <AlertDialogCancel
-              disabled={deleteState.isLoading}
+              disabled={
+                deleteState.isLoading
+              }
             >
               Cancel
             </AlertDialogCancel>
 
             <AlertDialogAction
-              onClick={confirmDelete}
-              disabled={deleteState.isLoading}
+              disabled={
+                deleteState.isLoading
+              }
+              onClick={(event) => {
+                event.preventDefault();
+                confirmDelete();
+              }}
               className="bg-destructive text-white hover:bg-destructive/90"
             >
               {deleteState.isLoading ? (
@@ -741,4 +835,3 @@ export default function Teams() {
     </main>
   );
 }
-

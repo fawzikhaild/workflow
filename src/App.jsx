@@ -1,18 +1,32 @@
 
-import { Navigate, Route, Routes } from "react-router-dom";
+import {
+  Navigate,
+  Route,
+  Routes,
+} from "react-router-dom";
 
 import AppShell from "@/layouts/AppShell";
 
 import ComingSoon from "@/pages/ComingSoon";
+import Settings from "./pages/Settings";
 import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
+import Notifications from "@/pages/Notifications";
+import ProjectDetails from "@/pages/ProjectDetails";
+import Projects from "@/pages/Projects";
 import Register from "@/pages/Register";
+import TaskDetails from "@/pages/TaskDetails";
+import Tasks from "@/pages/Tasks";
+import TeamDetails from "@/pages/TeamDetails";
 import Teams from "@/pages/Teams";
 
 import GuestRoute from "@/routes/GuestRoute";
 import ProtectedRoute from "@/routes/ProtectedRoute";
 
-import { ThemeProvider } from "@/components/theme-provider";
+import {
+  ThemeProvider,
+} from "@/components/theme-provider";
+
 
 function NotFound() {
   return (
@@ -34,6 +48,7 @@ function NotFound() {
   );
 }
 
+
 export default function App() {
   return (
     <ThemeProvider
@@ -41,22 +56,47 @@ export default function App() {
       storageKey="workflow-theme"
     >
       <Routes>
-        {/* Guest */}
-        <Route element={<GuestRoute />}>
+
+        {/* ====================================================
+            Guest
+        ==================================================== */}
+
+        <Route
+          element={
+            <GuestRoute />
+          }
+        >
           <Route
             path="/login"
-            element={<Login />}
+            element={
+              <Login />
+            }
           />
 
           <Route
             path="/register"
-            element={<Register />}
+            element={
+              <Register />
+            }
           />
         </Route>
 
-        {/* Protected */}
-        <Route element={<ProtectedRoute />}>
-          <Route element={<AppShell />}>
+
+        {/* ====================================================
+            Protected
+        ==================================================== */}
+
+        <Route
+          element={
+            <ProtectedRoute />
+          }
+        >
+          <Route
+            element={
+              <AppShell />
+            }
+          >
+
             <Route
               path="/"
               element={
@@ -67,51 +107,113 @@ export default function App() {
               }
             />
 
+
+            {/* Dashboard */}
+
             <Route
               path="/dashboard"
-              element={<Dashboard />}
+              element={
+                <Dashboard />
+              }
             />
+
+
+            {/* Teams */}
 
             <Route
               path="/teams"
-              element={<Teams />}
+              element={
+                <Teams />
+              }
             />
+
+            <Route
+              path="/teams/:teamId"
+              element={
+                <TeamDetails />
+              }
+            />
+
+
+            {/* Projects */}
 
             <Route
               path="/projects"
               element={
-                <ComingSoon title="Projects" />
+                <Projects />
               }
             />
+
+            <Route
+              path="/projects/:projectId"
+              element={
+                <ProjectDetails />
+              }
+            />
+
+            <Route
+              path="/projects/:projectId/edit"
+              element={
+                <ComingSoon
+                  title="Edit Project"
+                />
+              }
+            />
+
+
+            {/* Tasks */}
 
             <Route
               path="/tasks"
               element={
-                <ComingSoon title="Tasks" />
+                <Tasks />
               }
             />
+
+            <Route
+              path="/tasks/:taskId"
+              element={
+                <TaskDetails />
+              }
+            />
+
+
+            {/* Notifications */}
 
             <Route
               path="/notifications"
               element={
-                <ComingSoon title="Notifications" />
+                <Notifications />
               }
             />
+
+
+            {/* Settings */}
 
             <Route
               path="/settings"
               element={
-                <ComingSoon title="Settings" />
+                <Settings
+                  title="Settings"
+                />
               }
             />
+
           </Route>
         </Route>
 
-        {/* 404 */}
+
+        {/* ====================================================
+            404
+        ==================================================== */}
+
         <Route
           path="*"
-          element={<NotFound />}
+          element={
+            <NotFound />
+          }
         />
+
       </Routes>
     </ThemeProvider>
   );

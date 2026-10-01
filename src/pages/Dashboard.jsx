@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { motion } from "motion/react";
@@ -21,6 +20,7 @@ import {
 } from "@/store/api/apiSlice";
 
 import { Button } from "@/components/ui/button";
+
 import {
   Card,
   CardContent,
@@ -28,6 +28,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -35,18 +36,29 @@ const teamSchema = z.object({
   name: z
     .string()
     .trim()
-    .min(2, "Team name must be at least 2 characters.")
-    .max(80, "Team name must be less than 80 characters."),
+    .min(
+      2,
+      "Team name must be at least 2 characters."
+    )
+    .max(
+      80,
+      "Team name must be less than 80 characters."
+    ),
 
   description: z
     .string()
     .trim()
-    .max(300, "Description must be less than 300 characters.")
+    .max(
+      300,
+      "Description must be less than 300 characters."
+    )
     .optional(),
 });
 
 function getApiErrorMessage(error, fallback) {
-  if (!error) return fallback;
+  if (!error) {
+    return fallback;
+  }
 
   return (
     error?.data?.message ||
@@ -66,25 +78,38 @@ function SectionLoader() {
 }
 
 export default function Dashboard() {
-  const { user } = useSelector((state) => state.auth);
+  const { user } = useSelector(
+    (state) => state.auth
+  );
 
-  const [createSuccess, setCreateSuccess] = useState("");
+  const [createSuccess, setCreateSuccess] =
+    useState("");
 
   const {
     data: profile,
     isLoading: profileLoading,
     isError: profileIsError,
     error: profileError,
-  } = useGetMyProfileQuery();
+  } = useGetMyProfileQuery(
+    user?.id,
+    {
+      skip: !user?.id,
+    }
+  );
 
   const {
     data: teams = [],
     isLoading: teamsLoading,
     isError: teamsIsError,
     error: teamsError,
-  } = useGetMyTeamsQuery();
+  } = useGetMyTeamsQuery(
+    user?.id,
+    {
+      skip: !user?.id,
+    }
+  );
 
-  const [createTeam, { isLoading: isCreatingTeam }] =
+  const [createTeam, createState] =
     useCreateTeamMutation();
 
   const {
@@ -94,6 +119,7 @@ export default function Dashboard() {
     formState: { errors },
   } = useForm({
     resolver: zodResolver(teamSchema),
+
     defaultValues: {
       name: "",
       description: "",
@@ -104,10 +130,11 @@ export default function Dashboard() {
     setCreateSuccess("");
 
     try {
-      const newTeam = await createTeam({
-        name: values.name,
-        description: values.description,
-      }).unwrap();
+      const newTeam =
+        await createTeam({
+          name: values.name,
+          description: values.description,
+        }).unwrap();
 
       reset();
 
@@ -115,7 +142,10 @@ export default function Dashboard() {
         `Team "${newTeam.name}" was created successfully.`
       );
     } catch (error) {
-      console.error("Create team error:", error);
+      console.error(
+        "Create team error:",
+        error
+      );
     }
   }
 
@@ -131,23 +161,33 @@ export default function Dashboard() {
     user?.user_metadata?.username ||
     "No username";
 
-  const profileErrorMessage = getApiErrorMessage(
-    profileError,
-    "Unable to load your profile."
-  );
+  const profileErrorMessage =
+    getApiErrorMessage(
+      profileError,
+      "Unable to load your profile."
+    );
 
-  const teamsErrorMessage = getApiErrorMessage(
-    teamsError,
-    "Unable to load your teams."
-  );
+  const teamsErrorMessage =
+    getApiErrorMessage(
+      teamsError,
+      "Unable to load your teams."
+    );
 
   return (
     <main className="min-h-svh bg-background">
       <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
         <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45 }}
+          initial={{
+            opacity: 0,
+            y: 18,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            duration: 0.45,
+          }}
           className="mb-8"
         >
           <p className="mb-2 text-sm font-medium text-primary">
@@ -159,24 +199,37 @@ export default function Dashboard() {
           </h1>
 
           <p className="mt-2 max-w-2xl text-muted-foreground">
-            Manage your teams, projects, tasks, and collaboration
-            from one workspace.
+            Manage your teams, projects, tasks,
+            and collaboration from one workspace.
           </p>
         </motion.div>
 
-        <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
+        <div className="grid gap-6 lg:grid-cols-2">
           <motion.div
-            initial={{ opacity: 0, x: -18 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.45, delay: 0.08 }}
+            initial={{
+              opacity: 0,
+              x: -18,
+            }}
+            animate={{
+              opacity: 1,
+              x: 0,
+            }}
+            transition={{
+              duration: 0.45,
+              delay: 0.08,
+            }}
           >
             <Card className="h-full">
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <CardTitle>My Profile</CardTitle>
+                    <CardTitle>
+                      My Profile
+                    </CardTitle>
+
                     <CardDescription>
-                      Your WorkFlow account information.
+                      Your WorkFlow account
+                      information.
                     </CardDescription>
                   </div>
 
@@ -203,7 +256,8 @@ export default function Dashboard() {
                       </p>
 
                       <p className="mt-1 font-medium">
-                        {profile?.full_name || "Not set"}
+                        {profile?.full_name ||
+                          "Not set"}
                       </p>
                     </div>
 
@@ -223,7 +277,8 @@ export default function Dashboard() {
                       </p>
 
                       <p className="mt-1 break-all font-medium">
-                        {user?.email || "No email"}
+                        {user?.email ||
+                          "No email"}
                       </p>
                     </div>
 
@@ -234,7 +289,8 @@ export default function Dashboard() {
 
                       <div className="mt-1 inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm font-medium">
                         <ShieldCheck className="size-4" />
-                        {profile?.role || "user"}
+                        {profile?.role ||
+                          "user"}
                       </div>
                     </div>
                   </div>
@@ -244,17 +300,30 @@ export default function Dashboard() {
           </motion.div>
 
           <motion.div
-            initial={{ opacity: 0, x: 18 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.45, delay: 0.14 }}
+            initial={{
+              opacity: 0,
+              x: 18,
+            }}
+            animate={{
+              opacity: 1,
+              x: 0,
+            }}
+            transition={{
+              duration: 0.45,
+              delay: 0.14,
+            }}
           >
             <Card className="h-full">
               <CardHeader>
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <CardTitle>Create a Team</CardTitle>
+                    <CardTitle>
+                      Create a Team
+                    </CardTitle>
+
                     <CardDescription>
-                      Start a workspace for your project members.
+                      Start a workspace for your
+                      project members.
                     </CardDescription>
                   </div>
 
@@ -266,7 +335,9 @@ export default function Dashboard() {
 
               <CardContent>
                 <form
-                  onSubmit={handleSubmit(onSubmit)}
+                  onSubmit={handleSubmit(
+                    onSubmit
+                  )}
                   className="space-y-5"
                 >
                   <div className="space-y-2">
@@ -295,13 +366,19 @@ export default function Dashboard() {
                     <textarea
                       id="team-description"
                       placeholder="What does this team work on?"
-                      {...register("description")}
+                      {...register(
+                        "description"
+                      )}
                       className="flex min-h-28 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50"
                     />
 
                     {errors.description && (
                       <p className="text-sm text-destructive">
-                        {errors.description.message}
+                        {
+                          errors
+                            .description
+                            .message
+                        }
                       </p>
                     )}
                   </div>
@@ -319,9 +396,11 @@ export default function Dashboard() {
                   <Button
                     type="submit"
                     className="w-full"
-                    disabled={isCreatingTeam}
+                    disabled={
+                      createState.isLoading
+                    }
                   >
-                    {isCreatingTeam ? (
+                    {createState.isLoading ? (
                       <>
                         <LoaderCircle className="size-4 animate-spin" />
                         Creating...
@@ -334,10 +413,10 @@ export default function Dashboard() {
                     )}
                   </Button>
 
-                  {createTeam.error && (
+                  {createState.error && (
                     <p className="text-sm text-destructive">
                       {getApiErrorMessage(
-                        createTeam.error,
+                        createState.error,
                         "Unable to create the team."
                       )}
                     </p>
@@ -349,16 +428,28 @@ export default function Dashboard() {
         </div>
 
         <motion.section
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, delay: 0.2 }}
+          initial={{
+            opacity: 0,
+            y: 18,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            duration: 0.45,
+            delay: 0.2,
+          }}
           className="mt-6"
         >
           <Card>
             <CardHeader>
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <CardTitle>My Teams</CardTitle>
+                  <CardTitle>
+                    My Teams
+                  </CardTitle>
+
                   <CardDescription>
                     Teams you currently belong to.
                   </CardDescription>
@@ -390,8 +481,9 @@ export default function Dashboard() {
                   </h3>
 
                   <p className="mt-1 max-w-md text-sm text-muted-foreground">
-                    Create your first team above and start
-                    organizing your work.
+                    Create your first team above
+                    and start organizing your
+                    work.
                   </p>
                 </div>
               ) : (
@@ -419,13 +511,6 @@ export default function Dashboard() {
                         {team.description ||
                           "No description provided."}
                       </p>
-
-                      <div className="mt-4 text-xs text-muted-foreground">
-                        Created{" "}
-                        {new Date(
-                          team.created_at
-                        ).toLocaleDateString()}
-                      </div>
                     </div>
                   ))}
                 </div>
@@ -437,3 +522,4 @@ export default function Dashboard() {
     </main>
   );
 }
+
