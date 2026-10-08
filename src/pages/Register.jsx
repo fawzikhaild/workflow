@@ -1,6 +1,4 @@
 
-import { useState } from "react";
-
 import {
   useForm,
 } from "react-hook-form";
@@ -43,6 +41,10 @@ import {
 } from "@/features/auth/authSlice";
 
 import {
+  showAppToast,
+} from "@/components/AppToast";
+
+import {
   Button,
 } from "@/components/ui/button";
 
@@ -62,63 +64,109 @@ import {
   Label,
 } from "@/components/ui/label";
 
-const registerSchema = z
-  .object({
-    username: z
-      .string()
-      .trim()
-      .min(
-        3,
-        "Username must contain at least 3 characters."
-      )
-      .max(
-        30,
-        "Username must contain at most 30 characters."
-      ),
+// ==========================================================
+// Validation
+// ==========================================================
 
-    fullName: z
-      .string()
-      .trim()
-      .min(
-        2,
-        "Please enter your full name."
-      ),
+const registerSchema =
+  z
+    .object({
+      username: z
+        .string()
+        .trim()
+        .min(
+          3,
+          "Username must contain at least 3 characters."
+        )
+        .max(
+          30,
+          "Username must contain at most 30 characters."
+        ),
 
-    email: z
-      .string()
-      .trim()
-      .email(
-        "Please enter a valid email address."
-      ),
+      fullName: z
+        .string()
+        .trim()
+        .min(
+          2,
+          "Please enter your full name."
+        ),
 
-    password: z
-      .string()
-      .min(
-        8,
-        "Password must contain at least 8 characters."
-      ),
+      email: z
+        .string()
+        .trim()
+        .email(
+          "Please enter a valid email address."
+        ),
 
-    confirmPassword: z.string(),
-  })
-  .refine(
-    (values) =>
-      values.password ===
-      values.confirmPassword,
-    {
-      message: "Passwords do not match.",
-      path: ["confirmPassword"],
-    }
-  );
+      password: z
+        .string()
+        .min(
+          8,
+          "Password must contain at least 8 characters."
+        ),
+
+      confirmPassword:
+        z.string(),
+    })
+    .refine(
+      (values) =>
+        values.password ===
+        values.confirmPassword,
+      {
+        message:
+          "Passwords do not match.",
+        path: [
+          "confirmPassword",
+        ],
+      }
+    );
+
+// ==========================================================
+// Safe registration error message
+// ==========================================================
+
+function getRegisterErrorMessage(
+  error
+) {
+  const code =
+    error?.code ||
+    error?.status;
+
+  switch (code) {
+    case "user_already_exists":
+    case "email_exists":
+      return "An account with this email already exists.";
+
+    case "email_address_invalid":
+      return "Please use a valid email address.";
+
+    case "weak_password":
+      return "Please choose a stronger password.";
+
+    case "signup_disabled":
+      return "Account registration is currently unavailable.";
+
+    case "too_many_requests":
+      return "Too many registration attempts. Please try again later.";
+
+    case "network_error":
+      return "Unable to connect to the authentication service.";
+
+    default:
+      return "Unable to create your account. Please try again.";
+  }
+}
+
+// ==========================================================
+// Component
+// ==========================================================
 
 export default function Register() {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const navigate =
+    useNavigate();
 
-  const [serverError, setServerError] =
-    useState("");
-
-  const [successMessage, setSuccessMessage] =
-    useState("");
+  const dispatch =
+    useDispatch();
 
   const {
     register,
@@ -127,72 +175,138 @@ export default function Register() {
       errors,
       isSubmitting,
     },
-  } = useForm({
-    resolver: zodResolver(
-      registerSchema
-    ),
-    defaultValues: {
-      username: "",
-      fullName: "",
-      email: "",
-      password: "",
-      confirmPassword: "",
-    },
-  });
+  } =
+    useForm({
+      resolver:
+        zodResolver(
+          registerSchema
+        ),
 
-  async function onSubmit(values) {
-    setServerError("");
-    setSuccessMessage("");
+      defaultValues: {
+        username: "",
+        fullName: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+      },
+    });
 
+  // ========================================================
+  // Submit
+  // ========================================================
+
+  async function onSubmit(
+    values
+  ) {
     try {
       const {
         data,
         error,
-      } = await supabase.auth.signUp({
-        email: values.email,
-        password: values.password,
+      } =
+        await supabase.auth.signUp({
+          email:
+            values.email.trim(),
 
-        options: {
-          data: {
-            username: values.username,
-            full_name: values.fullName,
+          password:
+            values.password,
+
+          options: {
+            data: {
+              username:
+                values.username.trim(),
+
+              full_name:
+                values.fullName.trim(),
+            },
           },
-        },
-      });
+        });
 
       if (error) {
-        setServerError(
-          error.message ||
-            "Unable to create your account."
+        console.error(
+          "Register authentication error:",
+          error
         );
+
+        showAppToast({
+          type: "error",
+          title:
+            "Registration failed",
+          message:
+            getRegisterErrorMessage(
+              error
+            ),
+        });
+
         return;
       }
 
-      if (!data.session) {
-        setSuccessMessage(
-          "Account created successfully. Please check your email to confirm your account before signing in."
+      // ====================================================
+      // Email confirmation required
+      // ====================================================
+
+      if (!data?.session) {
+        showAppToast({
+          type: "success",
+          title:
+            "Account created",
+          message:
+            "Your account was created. Please check your email to confirm your account before signing in.",
+          duration: 6000,
+        });
+
+        navigate(
+          "/login",
+          {
+            replace: true,
+          }
         );
+
         return;
       }
+
+      // ====================================================
+      // Session created immediately
+      // ====================================================
 
       dispatch(
-        setSession(data.session)
+        setSession(
+          data.session
+        )
       );
 
-      navigate("/", {
-        replace: true,
+      showAppToast({
+        type: "success",
+        title:
+          "Account created",
+        message:
+          "Your account has been created successfully.",
       });
+
+      navigate(
+        "/",
+        {
+          replace: true,
+        }
+      );
     } catch (error) {
       console.error(
         "Register Error:",
         error
       );
 
-      setServerError(
-        "Something went wrong. Please try again."
-      );
+      showAppToast({
+        type: "error",
+        title:
+          "Registration failed",
+        message:
+          "Something went wrong. Please try again.",
+      });
     }
   }
+
+  // ========================================================
+  // Render
+  // ========================================================
 
   return (
     <main className="min-h-svh bg-background px-4 py-12">
@@ -215,6 +329,7 @@ export default function Register() {
             <CardHeader className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-primary">
                 <Sparkles className="size-4" />
+
                 WorkFlow
               </div>
 
@@ -234,19 +349,10 @@ export default function Register() {
                 onSubmit={handleSubmit(
                   onSubmit
                 )}
+                noValidate
                 className="space-y-5"
               >
-                {serverError && (
-                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                    {serverError}
-                  </div>
-                )}
-
-                {successMessage && (
-                  <div className="rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-700 dark:text-emerald-400">
-                    {successMessage}
-                  </div>
-                )}
+                {/* Username */}
 
                 <div className="space-y-2">
                   <Label htmlFor="username">
@@ -259,7 +365,12 @@ export default function Register() {
                     <Input
                       id="username"
                       placeholder="ahmed_dev"
-                      className="pl-10"
+                      className={[
+                        "pl-10",
+                        errors.username
+                          ? "border-destructive focus-visible:ring-destructive"
+                          : "",
+                      ].join(" ")}
                       autoComplete="username"
                       {...register(
                         "username"
@@ -269,10 +380,16 @@ export default function Register() {
 
                   {errors.username && (
                     <p className="text-sm text-destructive">
-                      {errors.username.message}
+                      {
+                        errors
+                          .username
+                          .message
+                      }
                     </p>
                   )}
                 </div>
+
+                {/* Full Name */}
 
                 <div className="space-y-2">
                   <Label htmlFor="fullName">
@@ -285,7 +402,12 @@ export default function Register() {
                     <Input
                       id="fullName"
                       placeholder="Ahmed Ali"
-                      className="pl-10"
+                      className={[
+                        "pl-10",
+                        errors.fullName
+                          ? "border-destructive focus-visible:ring-destructive"
+                          : "",
+                      ].join(" ")}
                       autoComplete="name"
                       {...register(
                         "fullName"
@@ -295,10 +417,16 @@ export default function Register() {
 
                   {errors.fullName && (
                     <p className="text-sm text-destructive">
-                      {errors.fullName.message}
+                      {
+                        errors
+                          .fullName
+                          .message
+                      }
                     </p>
                   )}
                 </div>
+
+                {/* Email */}
 
                 <div className="space-y-2">
                   <Label htmlFor="email">
@@ -312,18 +440,30 @@ export default function Register() {
                       id="email"
                       type="email"
                       placeholder="you@example.com"
-                      className="pl-10"
+                      className={[
+                        "pl-10",
+                        errors.email
+                          ? "border-destructive focus-visible:ring-destructive"
+                          : "",
+                      ].join(" ")}
                       autoComplete="email"
-                      {...register("email")}
+                      {...register(
+                        "email"
+                      )}
                     />
                   </div>
 
                   {errors.email && (
                     <p className="text-sm text-destructive">
-                      {errors.email.message}
+                      {
+                        errors.email
+                          .message
+                      }
                     </p>
                   )}
                 </div>
+
+                {/* Password */}
 
                 <div className="space-y-2">
                   <Label htmlFor="password">
@@ -337,7 +477,12 @@ export default function Register() {
                       id="password"
                       type="password"
                       placeholder="At least 8 characters"
-                      className="pl-10"
+                      className={[
+                        "pl-10",
+                        errors.password
+                          ? "border-destructive focus-visible:ring-destructive"
+                          : "",
+                      ].join(" ")}
                       autoComplete="new-password"
                       {...register(
                         "password"
@@ -347,10 +492,15 @@ export default function Register() {
 
                   {errors.password && (
                     <p className="text-sm text-destructive">
-                      {errors.password.message}
+                      {
+                        errors.password
+                          .message
+                      }
                     </p>
                   )}
                 </div>
+
+                {/* Confirm Password */}
 
                 <div className="space-y-2">
                   <Label htmlFor="confirmPassword">
@@ -364,7 +514,12 @@ export default function Register() {
                       id="confirmPassword"
                       type="password"
                       placeholder="Repeat your password"
-                      className="pl-10"
+                      className={[
+                        "pl-10",
+                        errors.confirmPassword
+                          ? "border-destructive focus-visible:ring-destructive"
+                          : "",
+                      ].join(" ")}
                       autoComplete="new-password"
                       {...register(
                         "confirmPassword"
@@ -383,17 +538,19 @@ export default function Register() {
                   )}
                 </div>
 
+                {/* Submit */}
+
                 <Button
                   type="submit"
                   className="w-full"
                   disabled={
-                    isSubmitting ||
-                    Boolean(successMessage)
+                    isSubmitting
                   }
                 >
                   {isSubmitting ? (
                     <>
                       <LoaderCircle className="size-4 animate-spin" />
+
                       Creating account...
                     </>
                   ) : (
@@ -401,8 +558,11 @@ export default function Register() {
                   )}
                 </Button>
 
+                {/* Login */}
+
                 <p className="text-center text-sm text-muted-foreground">
                   Already have an account?{" "}
+
                   <Link
                     to="/login"
                     className="font-semibold text-primary hover:underline"
@@ -418,4 +578,3 @@ export default function Register() {
     </main>
   );
 }
-

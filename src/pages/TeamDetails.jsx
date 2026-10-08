@@ -1,31 +1,46 @@
 
-import { useEffect, useState } from "react";
-import { z } from "zod";
+import {
+  useEffect,
+  useState,
+} from "react";
+
+import {
+  z,
+} from "zod";
+
 import {
   zodResolver,
 } from "@hookform/resolvers/zod";
+
 import {
   useForm,
 } from "react-hook-form";
+
 import {
   motion,
 } from "motion/react";
+
 import {
   ArrowLeft,
+  ArrowRight,
   Crown,
   LoaderCircle,
   Mail,
+  MessageCircle,
   Shield,
   UserMinus,
   Users,
 } from "lucide-react";
+
 import {
   Link,
   useParams,
 } from "react-router-dom";
+
 import {
   useSelector,
 } from "react-redux";
+
 import {
   skipToken,
 } from "@reduxjs/toolkit/query/react";
@@ -38,7 +53,9 @@ import {
   useUpdateTeamMemberRoleMutation,
 } from "@/store/api/apiSlice";
 
-import { Button } from "@/components/ui/button";
+import {
+  Button,
+} from "@/components/ui/button";
 
 import {
   Card,
@@ -68,21 +85,29 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Input,
+} from "@/components/ui/input";
 
-const memberSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .email("Enter a valid email address."),
+import {
+  Label,
+} from "@/components/ui/label";
 
-  role: z.enum([
-    "admin",
-    "member",
-    "guest",
-  ]),
-});
+const memberSchema =
+  z.object({
+    email: z
+      .string()
+      .trim()
+      .email(
+        "Enter a valid email address."
+      ),
+
+    role: z.enum([
+      "admin",
+      "member",
+      "guest",
+    ]),
+  });
 
 function getErrorMessage(
   error,
@@ -97,33 +122,47 @@ function getErrorMessage(
   );
 }
 
-function getInitials(name = "") {
-  const parts = name
-    .trim()
-    .split(" ")
-    .filter(Boolean);
+function getInitials(
+  name = ""
+) {
+  const parts =
+    name
+      .trim()
+      .split(" ")
+      .filter(Boolean);
 
-  if (parts.length === 0) {
+  if (
+    parts.length === 0
+  ) {
     return "U";
   }
 
-  if (parts.length === 1) {
+  if (
+    parts.length === 1
+  ) {
     return parts[0]
       .slice(0, 2)
       .toUpperCase();
   }
 
-  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`
+    .toUpperCase();
 }
 
-function RoleIcon({ role }) {
-  if (role === "owner") {
+function RoleIcon({
+  role,
+}) {
+  if (
+    role === "owner"
+  ) {
     return (
       <Crown className="size-4" />
     );
   }
 
-  if (role === "admin") {
+  if (
+    role === "admin"
+  ) {
     return (
       <Shield className="size-4" />
     );
@@ -135,47 +174,65 @@ function RoleIcon({ role }) {
 }
 
 export default function TeamDetails() {
-  const { teamId } = useParams();
+  const {
+    teamId,
+  } = useParams();
 
   const {
     user,
     initialized,
   } = useSelector(
-    (state) => state.auth
+    (state) =>
+      state.auth
   );
 
-  /*
-   * Do not run the query until the
-   * authenticated user is available.
-   */
+  // ==========================================================
+  // Queries
+  // ==========================================================
+
   const teamsQueryArg =
-    initialized && user?.id
+    initialized &&
+    user?.id
       ? user.id
       : skipToken;
 
   const membersQueryArg =
-    initialized && teamId
+    initialized &&
+    teamId
       ? teamId
       : skipToken;
 
   const {
     data: teams = [],
-    isLoading: teamsLoading,
-    isFetching: teamsFetching,
-    isError: teamsIsError,
-    error: teamsError,
-  } = useGetMyTeamsQuery(
-    teamsQueryArg
-  );
+    isLoading:
+      teamsLoading,
+    isFetching:
+      teamsFetching,
+    isError:
+      teamsIsError,
+    error:
+      teamsError,
+  } =
+    useGetMyTeamsQuery(
+      teamsQueryArg
+    );
 
   const {
     data: members = [],
-    isLoading: membersLoading,
-    isError: membersIsError,
-    error: membersError,
-  } = useGetTeamMembersQuery(
-    membersQueryArg
-  );
+    isLoading:
+      membersLoading,
+    isError:
+      membersIsError,
+    error:
+      membersError,
+  } =
+    useGetTeamMembersQuery(
+      membersQueryArg
+    );
+
+  // ==========================================================
+  // Mutations
+  // ==========================================================
 
   const [
     addTeamMember,
@@ -194,35 +251,49 @@ export default function TeamDetails() {
   ] =
     useRemoveTeamMemberMutation();
 
+  // ==========================================================
+  // State
+  // ==========================================================
+
   const [
     addDialogOpen,
     setAddDialogOpen,
-  ] = useState(false);
+  ] =
+    useState(false);
 
   const [
     removeDialogOpen,
     setRemoveDialogOpen,
-  ] = useState(false);
+  ] =
+    useState(false);
 
   const [
     memberToRemove,
     setMemberToRemove,
-  ] = useState(null);
+  ] =
+    useState(null);
 
   const [
     formError,
     setFormError,
-  ] = useState("");
+  ] =
+    useState("");
 
   const [
     actionError,
     setActionError,
-  ] = useState("");
+  ] =
+    useState("");
 
   const [
     updatingMemberId,
     setUpdatingMemberId,
-  ] = useState(null);
+  ] =
+    useState(null);
+
+  // ==========================================================
+  // Form
+  // ==========================================================
 
   const {
     register,
@@ -243,23 +314,38 @@ export default function TeamDetails() {
     },
   });
 
-  const team = teams.find(
-    (item) =>
-      item.id === teamId
-  );
+  // ==========================================================
+  // Team
+  // ==========================================================
+
+  const team =
+    teams.find(
+      (item) =>
+        item.id ===
+        teamId
+    );
 
   const currentRole =
-    team?.memberRole || null;
+    team?.memberRole ||
+    null;
 
   const canManage =
-    currentRole === "owner" ||
-    currentRole === "admin";
+    currentRole ===
+      "owner" ||
+    currentRole ===
+      "admin";
 
   const memberCount =
     members.length;
 
+  // ==========================================================
+  // Dialog reset
+  // ==========================================================
+
   useEffect(() => {
-    if (!addDialogOpen) {
+    if (
+      !addDialogOpen
+    ) {
       reset({
         email: "",
         role: "member",
@@ -270,6 +356,10 @@ export default function TeamDetails() {
     reset,
   ]);
 
+  // ==========================================================
+  // Add member
+  // ==========================================================
+
   function openAddDialog() {
     setFormError("");
     setActionError("");
@@ -279,7 +369,9 @@ export default function TeamDetails() {
       role: "member",
     });
 
-    setAddDialogOpen(true);
+    setAddDialogOpen(
+      true
+    );
   }
 
   async function onAddMember(
@@ -290,17 +382,23 @@ export default function TeamDetails() {
     try {
       await addTeamMember({
         teamId,
-        email: values.email,
-        role: values.role,
+        email:
+          values.email,
+        role:
+          values.role,
       }).unwrap();
 
-      setAddDialogOpen(false);
+      setAddDialogOpen(
+        false
+      );
 
       reset({
         email: "",
         role: "member",
       });
-    } catch (error) {
+    } catch (
+      error
+    ) {
       setFormError(
         getErrorMessage(
           error,
@@ -310,12 +408,19 @@ export default function TeamDetails() {
     }
   }
 
+  // ==========================================================
+  // Change role
+  // ==========================================================
+
   async function changeRole(
     userId,
     role
   ) {
     setActionError("");
-    setUpdatingMemberId(userId);
+
+    setUpdatingMemberId(
+      userId
+    );
 
     try {
       await updateTeamMemberRole({
@@ -323,7 +428,9 @@ export default function TeamDetails() {
         userId,
         role,
       }).unwrap();
-    } catch (error) {
+    } catch (
+      error
+    ) {
       setActionError(
         getErrorMessage(
           error,
@@ -331,20 +438,32 @@ export default function TeamDetails() {
         )
       );
     } finally {
-      setUpdatingMemberId(null);
+      setUpdatingMemberId(
+        null
+      );
     }
   }
+
+  // ==========================================================
+  // Remove member
+  // ==========================================================
 
   function openRemoveDialog(
     member
   ) {
     setActionError("");
-    setMemberToRemove(member);
-    setRemoveDialogOpen(true);
+    setMemberToRemove(
+      member
+    );
+    setRemoveDialogOpen(
+      true
+    );
   }
 
   async function confirmRemove() {
-    if (!memberToRemove) {
+    if (
+      !memberToRemove
+    ) {
       return;
     }
 
@@ -355,9 +474,16 @@ export default function TeamDetails() {
           memberToRemove.user_id,
       }).unwrap();
 
-      setRemoveDialogOpen(false);
-      setMemberToRemove(null);
-    } catch (error) {
+      setRemoveDialogOpen(
+        false
+      );
+
+      setMemberToRemove(
+        null
+      );
+    } catch (
+      error
+    ) {
       setActionError(
         getErrorMessage(
           error,
@@ -367,9 +493,10 @@ export default function TeamDetails() {
     }
   }
 
-  /*
-   * Wait for AuthSync first.
-   */
+  // ==========================================================
+  // Auth loading
+  // ==========================================================
+
   if (!initialized) {
     return (
       <main className="flex min-h-[calc(100svh-72px)] items-center justify-center">
@@ -378,9 +505,10 @@ export default function TeamDetails() {
     );
   }
 
-  /*
-   * Wait until the user's teams are available.
-   */
+  // ==========================================================
+  // Teams loading
+  // ==========================================================
+
   if (
     teamsLoading ||
     teamsFetching
@@ -392,10 +520,13 @@ export default function TeamDetails() {
     );
   }
 
-  /*
-   * Handle team query failure.
-   */
-  if (teamsIsError) {
+  // ==========================================================
+  // Teams error
+  // ==========================================================
+
+  if (
+    teamsIsError
+  ) {
     return (
       <main className="px-4 py-8 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl">
@@ -426,9 +557,10 @@ export default function TeamDetails() {
     );
   }
 
-  /*
-   * Team does not belong to the current user.
-   */
+  // ==========================================================
+  // Team not found
+  // ==========================================================
+
   if (!team) {
     return (
       <main className="px-4 py-8 sm:px-6 lg:px-8">
@@ -461,7 +593,11 @@ export default function TeamDetails() {
   return (
     <main className="min-h-full px-4 py-8 sm:px-6 lg:px-8">
       <div className="mx-auto w-full max-w-5xl">
+
+        {/* ================================================== */}
         {/* Header */}
+        {/* ================================================== */}
+
         <motion.div
           initial={{
             opacity: 0,
@@ -505,30 +641,40 @@ export default function TeamDetails() {
               </p>
             </div>
 
-            {canManage && (
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <Button
-                type="button"
-                onClick={
-                  openAddDialog
-                }
-                className="w-full sm:w-auto"
+                asChild
+                className="w-full gap-2 sm:w-auto"
               >
-                <Mail className="size-4" />
-                Add member
+                <Link
+                  to={`/teams/${teamId}/chat`}
+                >
+                  <MessageCircle className="size-4" />
+                  Open Team Chat
+                </Link>
               </Button>
-            )}
+
+              {canManage && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={
+                    openAddDialog
+                  }
+                  className="w-full sm:w-auto"
+                >
+                  <Mail className="size-4" />
+                  Add member
+                </Button>
+              )}
+            </div>
           </div>
         </motion.div>
 
-        {actionError && (
-          <div className="mt-6 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
-            <p className="text-sm text-destructive">
-              {actionError}
-            </p>
-          </div>
-        )}
+        {/* ================================================== */}
+        {/* Chat CTA */}
+        {/* ================================================== */}
 
-        {/* Members */}
         <motion.section
           initial={{
             opacity: 0,
@@ -540,7 +686,83 @@ export default function TeamDetails() {
           }}
           transition={{
             duration: 0.4,
-            delay: 0.08,
+            delay: 0.05,
+          }}
+          className="mt-8"
+        >
+          <Link
+            to={`/teams/${teamId}/chat`}
+            className="group block"
+          >
+            <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/[0.08] via-card to-card transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg">
+              <CardContent className="p-0">
+                <div className="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-7">
+                  <div className="flex min-w-0 items-center gap-4">
+                    <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+                      <MessageCircle className="size-6" />
+                    </div>
+
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h2 className="text-lg font-semibold tracking-tight">
+                          Team Chat
+                        </h2>
+
+                        <span className="rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">
+                          Live
+                        </span>
+                      </div>
+
+                      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                        Chat with everyone in{" "}
+                        <span className="font-medium text-foreground">
+                          {team.name}
+                        </span>
+                        . Send messages, reply, mention teammates,
+                        and share files.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex shrink-0 items-center gap-2 text-sm font-semibold text-primary">
+                    Enter chat
+
+                    <ArrowRight className="size-4 transition-transform duration-200 group-hover:translate-x-1" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </motion.section>
+
+        {/* ================================================== */}
+        {/* Action Error */}
+        {/* ================================================== */}
+
+        {actionError && (
+          <div className="mt-6 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+            <p className="text-sm text-destructive">
+              {actionError}
+            </p>
+          </div>
+        )}
+
+        {/* ================================================== */}
+        {/* Members */}
+        {/* ================================================== */}
+
+        <motion.section
+          initial={{
+            opacity: 0,
+            y: 14,
+          }}
+          animate={{
+            opacity: 1,
+            y: 0,
+          }}
+          transition={{
+            duration: 0.4,
+            delay: 0.1,
           }}
           className="mt-8"
         >
@@ -590,14 +812,16 @@ export default function TeamDetails() {
                   </h3>
 
                   <p className="mt-2 text-sm text-muted-foreground">
-                    Add your first team member to
-                    begin collaborating.
+                    Add your first team member to begin
+                    collaborating.
                   </p>
                 </div>
               ) : (
                 <div className="divide-y">
                   {members.map(
-                    (member) => {
+                    (
+                      member
+                    ) => {
                       const profile =
                         member.profile;
 
@@ -607,7 +831,9 @@ export default function TeamDetails() {
                         "Unknown user";
 
                       const initials =
-                        getInitials(name);
+                        getInitials(
+                          name
+                        );
 
                       const isCurrentUser =
                         member.user_id ===
@@ -733,7 +959,10 @@ export default function TeamDetails() {
         </motion.section>
       </div>
 
+      {/* ==================================================== */}
       {/* Add Member */}
+      {/* ==================================================== */}
+
       <Dialog
         open={addDialogOpen}
         onOpenChange={
@@ -768,12 +997,17 @@ export default function TeamDetails() {
                 type="email"
                 placeholder="alex@example.com"
                 autoFocus
-                {...register("email")}
+                {...register(
+                  "email"
+                )}
               />
 
               {errors.email && (
                 <p className="text-sm text-destructive">
-                  {errors.email.message}
+                  {
+                    errors.email
+                      .message
+                  }
                 </p>
               )}
             </div>
@@ -785,7 +1019,9 @@ export default function TeamDetails() {
 
               <select
                 id="member-role"
-                {...register("role")}
+                {...register(
+                  "role"
+                )}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
               >
                 <option value="member">
@@ -820,7 +1056,9 @@ export default function TeamDetails() {
                 type="button"
                 variant="outline"
                 onClick={() =>
-                  setAddDialogOpen(false)
+                  setAddDialogOpen(
+                    false
+                  )
                 }
                 disabled={
                   addState.isLoading
@@ -852,7 +1090,10 @@ export default function TeamDetails() {
         </DialogContent>
       </Dialog>
 
+      {/* ==================================================== */}
       {/* Remove Member */}
+      {/* ==================================================== */}
+
       <AlertDialog
         open={removeDialogOpen}
         onOpenChange={
@@ -867,7 +1108,17 @@ export default function TeamDetails() {
 
             <AlertDialogDescription>
               {memberToRemove
-                ? `Remove "${memberToRemove.profile?.full_name || memberToRemove.profile?.username || "this user"}" from ${team.name}?`
+                ? `Remove "${
+                    memberToRemove
+                      .profile
+                      ?.full_name ||
+                    memberToRemove
+                      .profile
+                      ?.username ||
+                    "this user"
+                  }" from ${
+                    team.name
+                  }?`
                 : "This member will lose access to the team."}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -885,8 +1136,11 @@ export default function TeamDetails() {
               disabled={
                 removeState.isLoading
               }
-              onClick={(event) => {
+              onClick={(
+                event
+              ) => {
                 event.preventDefault();
+
                 confirmRemove();
               }}
               className="bg-destructive text-white hover:bg-destructive/90"
@@ -909,3 +1163,4 @@ export default function TeamDetails() {
     </main>
   );
 }
+

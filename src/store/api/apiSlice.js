@@ -3,11 +3,9 @@ import {
   apiSlice as baseApi,
 } from "./apiBase";
 
-
 import {
   useGetMyProfileQuery,
 } from "./profileApi";
-
 
 import {
   useGetMyTeamsQuery,
@@ -16,14 +14,12 @@ import {
   useDeleteTeamMutation,
 } from "./teamsApi";
 
-
 import {
   useGetTeamMembersQuery,
   useAddTeamMemberMutation,
   useUpdateTeamMemberRoleMutation,
   useRemoveTeamMemberMutation,
 } from "./teamMembersApi";
-
 
 import {
   useGetMyProjectsQuery,
@@ -33,6 +29,9 @@ import {
   useDeleteProjectMutation,
 } from "./ProjectsApi";
 
+import {
+  useGetMyProjectAccessQuery,
+} from "./projectPermissionsApi";
 
 import {
   useGetProjectTasksQuery,
@@ -41,11 +40,9 @@ import {
   useDeleteTaskMutation,
 } from "./tasksApi";
 
-
 import {
   useGetTaskByIdQuery,
 } from "./taskDetailsApi";
-
 
 import {
   useGetTaskCommentsQuery,
@@ -53,11 +50,9 @@ import {
   useDeleteTaskCommentMutation,
 } from "./commentsApi";
 
-
 import {
   useGetTaskActivityQuery,
 } from "./activityApi";
-
 
 import {
   useGetMyNotificationsQuery,
@@ -65,21 +60,42 @@ import {
   useMarkAllNotificationsReadMutation,
 } from "./notificationsApi";
 
+import {
+  useGetTeamChatMessagesQuery,
+  useSendTeamChatMessageMutation,
+  useUpdateTeamChatMessageMutation,
+  useDeleteTeamChatMessageMutation,
+  useGetTeamChatAttachmentUrlMutation,
+} from "./teamChatApi";
 
 import {
-  useGetMyProjectAccessQuery,
-} from "./projectPermissionsApi";
+  useGetMyMeetingsQuery,
+  useGetMeetingByIdQuery,
+  useCreateMeetingMutation,
+  useUpdateMeetingMutation,
+  useDeleteMeetingMutation,
+  useStartMeetingMutation,
+  useEndMeetingMutation,
+} from "./meetingsApi";
 
+import {
+  useGetMeetingParticipantsQuery,
+  useAddMeetingParticipantMutation,
+  useRemoveMeetingParticipantMutation,
+  useUpdateMeetingParticipantStatusMutation,
+} from "./meetingParticipantsApi";
+
+import {
+  useModerateMeetingMutation,
+} from "./meetingModerationApi";
 
 export const apiSlice =
   baseApi;
-
 
 export {
   // Profile
 
   useGetMyProfileQuery,
-
 
   // Teams
 
@@ -88,14 +104,12 @@ export {
   useUpdateTeamMutation,
   useDeleteTeamMutation,
 
-
   // Team Members
 
   useGetTeamMembersQuery,
   useAddTeamMemberMutation,
   useUpdateTeamMemberRoleMutation,
   useRemoveTeamMemberMutation,
-
 
   // Projects
 
@@ -105,11 +119,9 @@ export {
   useUpdateProjectMutation,
   useDeleteProjectMutation,
 
-
   // Project Permissions
 
   useGetMyProjectAccessQuery,
-
 
   // Tasks
 
@@ -118,11 +130,9 @@ export {
   useUpdateTaskMutation,
   useDeleteTaskMutation,
 
-
   // Task Details
 
   useGetTaskByIdQuery,
-
 
   // Comments
 
@@ -130,16 +140,42 @@ export {
   useAddTaskCommentMutation,
   useDeleteTaskCommentMutation,
 
-
   // Activity
 
   useGetTaskActivityQuery,
-
 
   // Notifications
 
   useGetMyNotificationsQuery,
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
-};
 
+  // Team Chat
+
+  useGetTeamChatMessagesQuery,
+  useSendTeamChatMessageMutation,
+  useUpdateTeamChatMessageMutation,
+  useDeleteTeamChatMessageMutation,
+  useGetTeamChatAttachmentUrlMutation,
+
+  // Meetings
+
+  useGetMyMeetingsQuery,
+  useGetMeetingByIdQuery,
+  useCreateMeetingMutation,
+  useUpdateMeetingMutation,
+  useDeleteMeetingMutation,
+  useStartMeetingMutation,
+  useEndMeetingMutation,
+
+  // Meeting Participants
+
+  useGetMeetingParticipantsQuery,
+  useAddMeetingParticipantMutation,
+  useRemoveMeetingParticipantMutation,
+  useUpdateMeetingParticipantStatusMutation,
+
+  // Meeting Moderation
+
+  useModerateMeetingMutation,
+};

@@ -5,18 +5,23 @@ import {
   Routes,
 } from "react-router-dom";
 
+import AppToast from "@/components/AppToast";
+
 import AppShell from "@/layouts/AppShell";
 
 import ComingSoon from "@/pages/ComingSoon";
-import Settings from "./pages/Settings";
 import Dashboard from "@/pages/Dashboard";
 import Login from "@/pages/Login";
+import Meetings from "@/pages/Meetings";
+import MeetingDetails from "@/pages/MeetingDetails";
 import Notifications from "@/pages/Notifications";
 import ProjectDetails from "@/pages/ProjectDetails";
 import Projects from "@/pages/Projects";
 import Register from "@/pages/Register";
+import Settings from "@/pages/Settings";
 import TaskDetails from "@/pages/TaskDetails";
 import Tasks from "@/pages/Tasks";
+import TeamChat from "@/pages/TeamChat";
 import TeamDetails from "@/pages/TeamDetails";
 import Teams from "@/pages/Teams";
 
@@ -27,6 +32,9 @@ import {
   ThemeProvider,
 } from "@/components/theme-provider";
 
+// ============================================================
+// Not Found
+// ============================================================
 
 function NotFound() {
   return (
@@ -48,6 +56,9 @@ function NotFound() {
   );
 }
 
+// ============================================================
+// App
+// ============================================================
 
 export default function App() {
   return (
@@ -56,46 +67,29 @@ export default function App() {
       storageKey="workflow-theme"
     >
       <Routes>
+        {/* ================================================== */}
+        {/* Guest Routes */}
+        {/* ================================================== */}
 
-        {/* ====================================================
-            Guest
-        ==================================================== */}
-
-        <Route
-          element={
-            <GuestRoute />
-          }
-        >
+        <Route element={<GuestRoute />}>
           <Route
             path="/login"
-            element={
-              <Login />
-            }
+            element={<Login />}
           />
 
           <Route
             path="/register"
-            element={
-              <Register />
-            }
+            element={<Register />}
           />
         </Route>
 
+        {/* ================================================== */}
+        {/* Protected Routes */}
+        {/* ================================================== */}
 
-        {/* ====================================================
-            Protected
-        ==================================================== */}
-
-        <Route
-          element={
-            <ProtectedRoute />
-          }
-        >
-          <Route
-            element={
-              <AppShell />
-            }
-          >
+        <Route element={<ProtectedRoute />}>
+          <Route element={<AppShell />}>
+            {/* Dashboard */}
 
             <Route
               path="/"
@@ -107,48 +101,38 @@ export default function App() {
               }
             />
 
-
-            {/* Dashboard */}
-
             <Route
               path="/dashboard"
-              element={
-                <Dashboard />
-              }
+              element={<Dashboard />}
             />
-
 
             {/* Teams */}
 
             <Route
               path="/teams"
-              element={
-                <Teams />
-              }
+              element={<Teams />}
             />
 
             <Route
               path="/teams/:teamId"
-              element={
-                <TeamDetails />
-              }
+              element={<TeamDetails />}
             />
 
+            <Route
+              path="/teams/:teamId/chat"
+              element={<TeamChat />}
+            />
 
             {/* Projects */}
 
             <Route
               path="/projects"
-              element={
-                <Projects />
-              }
+              element={<Projects />}
             />
 
             <Route
               path="/projects/:projectId"
-              element={
-                <ProjectDetails />
-              }
+              element={<ProjectDetails />}
             />
 
             <Route
@@ -160,33 +144,36 @@ export default function App() {
               }
             />
 
+            {/* Meetings */}
+
+            <Route
+              path="/meetings"
+              element={<Meetings />}
+            />
+
+            <Route
+              path="/meetings/:meetingId"
+              element={<MeetingDetails />}
+            />
 
             {/* Tasks */}
 
             <Route
               path="/tasks"
-              element={
-                <Tasks />
-              }
+              element={<Tasks />}
             />
 
             <Route
               path="/tasks/:taskId"
-              element={
-                <TaskDetails />
-              }
+              element={<TaskDetails />}
             />
-
 
             {/* Notifications */}
 
             <Route
               path="/notifications"
-              element={
-                <Notifications />
-              }
+              element={<Notifications />}
             />
-
 
             {/* Settings */}
 
@@ -198,23 +185,25 @@ export default function App() {
                 />
               }
             />
-
           </Route>
         </Route>
 
-
-        {/* ====================================================
-            404
-        ==================================================== */}
+        {/* ================================================== */}
+        {/* Not Found */}
+        {/* ================================================== */}
 
         <Route
           path="*"
-          element={
-            <NotFound />
-          }
+          element={<NotFound />}
         />
-
       </Routes>
+
+      {/* ================================================== */}
+      {/* Global Toast */}
+      {/* ================================================== */}
+
+      <AppToast />
     </ThemeProvider>
   );
 }
+

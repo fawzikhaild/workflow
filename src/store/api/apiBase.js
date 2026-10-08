@@ -4,26 +4,26 @@ import {
   fakeBaseQuery,
 } from "@reduxjs/toolkit/query/react";
 
+export const apiSlice = createApi({
+  reducerPath: "api",
 
-export const apiSlice =
-  createApi({
-    reducerPath: "api",
+  baseQuery: fakeBaseQuery(),
 
-    baseQuery:
-      fakeBaseQuery(),
+  tagTypes: [
+    "Profile",
+    "Teams",
+    "TeamMembers",
+    "Projects",
+    "ProjectPermissions",
+    "Tasks",
+    "TeamChat",
+    "Comments",
+    "Notifications",
+    "ActivityLogs",
+    "Meetings",
+    "MeetingParticipants",
+  ],
 
-    tagTypes: [
-      "Profile",
-      "Teams",
-      "TeamMembers",
-      "Projects",
-      "ProjectPermissions",
-      "Tasks",
-      "Comments",
-      "Notifications",
-      "ActivityLogs",
-    ],
-
-    endpoints: () => ({}),
-  });
+  endpoints: () => ({}),
+});
 

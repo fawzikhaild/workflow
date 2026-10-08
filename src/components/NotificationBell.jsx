@@ -7,21 +7,22 @@ import {
 } from "react";
 
 import {
-  useSelector,
-} from "react-redux";
+  Bell,
+  Check,
+  CheckCircle2,
+  Clock3,
+  ExternalLink,
+  MessageCircle,
+} from "lucide-react";
 
 import {
+  Link,
   useNavigate,
 } from "react-router-dom";
 
 import {
-  Bell,
-  Check,
-  CheckCircle2,
-  ExternalLink,
-  MessageCircle,
-  UserPlus,
-} from "lucide-react";
+  useSelector,
+} from "react-redux";
 
 import {
   Button,
@@ -38,32 +39,71 @@ import {
 // ============================================================
 
 function getNotificationIcon(
-  type
+  notification
 ) {
-  switch (type) {
-    case "task_assigned":
-      return UserPlus;
-
-    case "comment_created":
-      return MessageCircle;
-
-    case "task_status_changed":
-      return CheckCircle2;
-
-    default:
-      return Bell;
+  if (
+    notification.notification_type ===
+    "chat_message"
+  ) {
+    return MessageCircle;
   }
+
+  return Bell;
 }
 
-function formatTime(
-  value
+function getNotificationLabel(
+  notification
 ) {
-  if (!value) {
+  if (
+    notification.notification_type ===
+    "chat_message"
+  ) {
+    return "Team Chat";
+  }
+
+  return "Notification";
+}
+
+function getNotificationDestination(
+  notification
+) {
+  if (
+    notification.notification_type ===
+      "chat_message" &&
+    notification.team_id
+  ) {
+    const query =
+      notification.chat_message_id
+        ? `?message=${notification.chat_message_id}`
+        : "";
+
+    return `/teams/${notification.team_id}/chat${query}`;
+  }
+
+  if (
+    notification.task_id
+  ) {
+    return `/tasks/${notification.task_id}`;
+  }
+
+  if (
+    notification.project_id
+  ) {
+    return `/projects/${notification.project_id}`;
+  }
+
+  return "/notifications";
+}
+
+function formatRelativeTime(
+  createdAt
+) {
+  if (!createdAt) {
     return "";
   }
 
   const date =
-    new Date(value);
+    new Date(createdAt);
 
   if (
     Number.isNaN(
@@ -73,13 +113,64 @@ function formatTime(
     return "";
   }
 
-  return new Intl.DateTimeFormat(
+  const diff =
+    Math.max(
+      0,
+      Date.now() -
+        date.getTime()
+    );
+
+  const seconds =
+    Math.floor(
+      diff / 1000
+    );
+
+  if (
+    seconds < 60
+  ) {
+    return "Just now";
+  }
+
+  const minutes =
+    Math.floor(
+      seconds / 60
+    );
+
+  if (
+    minutes < 60
+  ) {
+    return `${minutes}m ago`;
+  }
+
+  const hours =
+    Math.floor(
+      minutes / 60
+    );
+
+  if (
+    hours < 24
+  ) {
+    return `${hours}h ago`;
+  }
+
+  const days =
+    Math.floor(
+      hours / 24
+    );
+
+  if (
+    days < 7
+  ) {
+    return `${days}d ago`;
+  }
+
+  return date.toLocaleDateString(
     undefined,
     {
-      hour: "numeric",
-      minute: "2-digit",
+      month: "short",
+      day: "numeric",
     }
-  ).format(date);
+  );
 }
 
 // ============================================================
@@ -89,9 +180,6 @@ function formatTime(
 export default function NotificationBell() {
   const navigate =
     useNavigate();
-
-  const containerRef =
-    useRef(null);
 
   const userId =
     useSelector(
@@ -104,6 +192,13 @@ export default function NotificationBell() {
     setOpen,
   ] = useState(false);
 
+  const containerRef =
+    useRef(null);
+
+  // ==========================================================
+  // Notifications
+  // ==========================================================
+
   const {
     data: notifications = [],
     isLoading,
@@ -111,7 +206,8 @@ export default function NotificationBell() {
     useGetMyNotificationsQuery(
       userId,
       {
-        skip: !userId,
+        skip:
+          !userId,
       }
     );
 
@@ -124,44 +220,59 @@ export default function NotificationBell() {
     markAllNotificationsRead,
     {
       isLoading:
-        markAllLoading,
+        markingAllRead,
     },
   ] =
     useMarkAllNotificationsReadMutation();
 
+  // ==========================================================
+  // Derived data
+  // ==========================================================
+
   const unreadCount =
-    useMemo(
-      () =>
-        notifications.filter(
-          (item) =>
-            !item.is_read
-        ).length,
-      [notifications]
-    );
+    useMemo(() => {
+      return notifications.filter(
+        (
+          notification
+        ) =>
+          !notification.is_read
+      ).length;
+    }, [
+      notifications,
+    ]);
 
   const latestNotifications =
-    useMemo(
-      () =>
-        [...notifications]
-          .sort(
-            (a, b) =>
-              new Date(
-                b.created_at || 0
-              ).getTime() -
-              new Date(
-                a.created_at || 0
-              ).getTime()
-          )
-          .slice(0, 5),
-      [notifications]
-    );
+    useMemo(() => {
+      return [
+        ...notifications,
+      ]
+        .sort(
+          (a, b) =>
+            new Date(
+              b.created_at ||
+                0
+            ).getTime() -
+            new Date(
+              a.created_at ||
+                0
+            ).getTime()
+        )
+        .slice(0, 5);
+    }, [
+      notifications,
+    ]);
+
+  // ==========================================================
+  // Outside click + Escape
+  // ==========================================================
 
   useEffect(() => {
-    function handlePointerDown(
+    function handleOutsideClick(
       event
     ) {
       if (
-        !containerRef.current?.contains(
+        containerRef.current &&
+        !containerRef.current.contains(
           event.target
         )
       ) {
@@ -169,40 +280,45 @@ export default function NotificationBell() {
       }
     }
 
-    function handleKeyDown(
+    function handleEscape(
       event
     ) {
-      if (event.key === "Escape") {
+      if (
+        event.key ===
+        "Escape"
+      ) {
         setOpen(false);
       }
     }
 
-    if (open) {
-      document.addEventListener(
-        "mousedown",
-        handlePointerDown
-      );
+    document.addEventListener(
+      "mousedown",
+      handleOutsideClick
+    );
 
-      document.addEventListener(
-        "keydown",
-        handleKeyDown
-      );
-    }
+    window.addEventListener(
+      "keydown",
+      handleEscape
+    );
 
     return () => {
       document.removeEventListener(
         "mousedown",
-        handlePointerDown
+        handleOutsideClick
       );
 
-      document.removeEventListener(
+      window.removeEventListener(
         "keydown",
-        handleKeyDown
+        handleEscape
       );
     };
-  }, [open]);
+  }, []);
 
-  async function handleOpen(
+  // ==========================================================
+  // Open notification
+  // ==========================================================
+
+  async function handleOpenNotification(
     notification
   ) {
     try {
@@ -213,47 +329,43 @@ export default function NotificationBell() {
           notification.id
         ).unwrap();
       }
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
-        "Notification read error:",
+        "Unable to mark notification as read:",
         error
       );
     }
 
     setOpen(false);
 
-    if (notification.task_id) {
-      navigate(
-        `/tasks/${notification.task_id}`
-      );
-      return;
-    }
-
-    if (notification.project_id) {
-      navigate(
-        `/projects/${notification.project_id}`
-      );
-      return;
-    }
-
     navigate(
-      "/notifications"
+      getNotificationDestination(
+        notification
+      )
     );
   }
 
-  async function handleMarkAll() {
+  // ==========================================================
+  // Mark all
+  // ==========================================================
+
+  async function handleMarkAllAsRead() {
     if (
       unreadCount === 0 ||
-      markAllLoading
+      markingAllRead
     ) {
       return;
     }
 
     try {
       await markAllNotificationsRead().unwrap();
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
-        "Mark all notifications error:",
+        "Unable to mark all notifications as read:",
         error
       );
     }
@@ -264,6 +376,10 @@ export default function NotificationBell() {
       ref={containerRef}
       className="relative"
     >
+      {/* ==================================================== */}
+      {/* Bell */}
+      {/* ==================================================== */}
+
       <Button
         type="button"
         variant="ghost"
@@ -275,33 +391,30 @@ export default function NotificationBell() {
               !current
           )
         }
-        aria-label={
-          unreadCount > 0
-            ? `Notifications, ${unreadCount} unread`
-            : "Notifications"
-        }
+        aria-label="Notifications"
         aria-expanded={open}
-        aria-haspopup="dialog"
-        title="Notifications"
       >
         <Bell className="size-5" />
 
-        {unreadCount > 0 && (
-          <span className="absolute right-1 top-1 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-4 text-primary-foreground ring-2 ring-background">
-            {unreadCount > 99
-              ? "99+"
-              : unreadCount}
-          </span>
-        )}
+        {!isLoading &&
+          unreadCount > 0 && (
+            <span className="absolute right-1 top-1 flex min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold leading-4 text-primary-foreground">
+              {unreadCount > 99
+                ? "99+"
+                : unreadCount}
+            </span>
+          )}
       </Button>
 
+      {/* ==================================================== */}
+      {/* Dropdown */}
+      {/* ==================================================== */}
+
       {open && (
-        <div
-          role="dialog"
-          aria-label="Notifications preview"
-          className="absolute right-0 top-12 z-50 w-[min(92vw,380px)] overflow-hidden rounded-2xl border bg-popover text-popover-foreground shadow-xl"
-        >
+        <div className="absolute right-0 top-full z-50 mt-2 w-[360px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border bg-background shadow-2xl">
+          {/* ------------------------------------------------ */}
           {/* Header */}
+          {/* ------------------------------------------------ */}
 
           <div className="flex items-center justify-between border-b px-4 py-3">
             <div>
@@ -321,162 +434,208 @@ export default function NotificationBell() {
               variant="ghost"
               size="sm"
               onClick={
-                handleMarkAll
+                handleMarkAllAsRead
               }
               disabled={
                 unreadCount === 0 ||
-                markAllLoading
+                markingAllRead
               }
             >
-              <Check className="size-3.5" />
-              Mark all read
+              <CheckCircle2 className="size-3.5" />
+              Mark all
             </Button>
           </div>
 
-          {/* Content */}
+          {/* ------------------------------------------------ */}
+          {/* Loading */}
+          {/* ------------------------------------------------ */}
 
-          {isLoading ? (
-            <div className="space-y-3 p-4">
+          {isLoading && (
+            <div className="space-y-2 p-3">
               {Array.from({
-                length: 3,
+                length: 4,
               }).map(
-                (_, index) => (
+                (
+                  _,
+                  index
+                ) => (
                   <div
-                    key={index}
-                    className="animate-pulse rounded-xl p-2"
+                    key={
+                      index
+                    }
+                    className="animate-pulse rounded-xl border p-3"
                   >
                     <div className="flex gap-3">
-                      <div className="size-9 rounded-xl bg-muted" />
+                      <div className="size-9 rounded-lg bg-muted" />
 
                       <div className="flex-1 space-y-2">
-                        <div className="h-3 w-28 rounded bg-muted" />
+                        <div className="h-3 w-32 rounded bg-muted" />
+
                         <div className="h-3 w-full rounded bg-muted" />
-                        <div className="h-3 w-2/3 rounded bg-muted" />
+
+                        <div className="h-2 w-20 rounded bg-muted" />
                       </div>
                     </div>
                   </div>
                 )
               )}
             </div>
-          ) : latestNotifications.length ===
-            0 ? (
-            <div className="flex min-h-44 flex-col items-center justify-center px-6 py-8 text-center">
-              <div className="mb-3 flex size-11 items-center justify-center rounded-xl bg-muted">
-                <Bell className="size-5 text-muted-foreground" />
+          )}
+
+          {/* ------------------------------------------------ */}
+          {/* Empty */}
+          {/* ------------------------------------------------ */}
+
+          {!isLoading &&
+            latestNotifications.length ===
+              0 && (
+              <div className="flex flex-col items-center px-6 py-10 text-center">
+                <div className="mb-3 flex size-12 items-center justify-center rounded-xl bg-muted">
+                  <Bell className="size-5 text-muted-foreground" />
+                </div>
+
+                <p className="text-sm font-medium">
+                  No notifications
+                </p>
+
+                <p className="mt-1 text-xs text-muted-foreground">
+                  New activity will appear here.
+                </p>
               </div>
+            )}
 
-              <p className="text-sm font-medium">
-                No notifications yet
-              </p>
+          {/* ------------------------------------------------ */}
+          {/* Notification list */}
+          {/* ------------------------------------------------ */}
 
-              <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                New activity will appear here.
-              </p>
-            </div>
-          ) : (
-            <div className="max-h-[390px] overflow-y-auto p-2">
-              {latestNotifications.map(
-                (notification) => {
-                  const Icon =
-                    getNotificationIcon(
-                      notification.notification_type
-                    );
+          {!isLoading &&
+            latestNotifications.length >
+              0 && (
+              <div className="max-h-[420px] overflow-y-auto p-2">
+                {latestNotifications.map(
+                  (
+                    notification
+                  ) => {
+                    const Icon =
+                      getNotificationIcon(
+                        notification
+                      );
 
-                  const isUnread =
-                    !notification.is_read;
+                    const unread =
+                      !notification.is_read;
 
-                  return (
-                    <button
-                      key={
-                        notification.id
-                      }
-                      type="button"
-                      onClick={() =>
-                        handleOpen(
-                          notification
-                        )
-                      }
-                      className={[
-                        "flex w-full items-start gap-3 rounded-xl px-3 py-3 text-left transition-colors",
-                        "hover:bg-muted",
-                        isUnread
-                          ? "bg-primary/[0.04]"
-                          : "",
-                      ].join(
-                        " "
-                      )}
-                    >
-                      <div
+                    const isChat =
+                      notification.notification_type ===
+                      "chat_message";
+
+                    return (
+                      <button
+                        key={
+                          notification.id
+                        }
+                        type="button"
+                        onClick={() =>
+                          handleOpenNotification(
+                            notification
+                          )
+                        }
                         className={[
-                          "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl",
-                          isUnread
-                            ? "bg-primary/10 text-primary"
-                            : "bg-muted text-muted-foreground",
+                          "flex w-full gap-3 rounded-xl p-3 text-left transition-colors",
+
+                          unread
+                            ? "bg-primary/[0.05] hover:bg-primary/[0.10]"
+                            : "hover:bg-muted",
                         ].join(
                           " "
                         )}
                       >
-                        <Icon className="size-4" />
-                      </div>
+                        {/* Icon */}
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-start justify-between gap-2">
-                          <p
-                            className={[
-                              "truncate text-sm",
-                              isUnread
-                                ? "font-semibold"
-                                : "font-medium",
-                            ].join(
-                              " "
-                            )}
-                          >
-                            {notification.title ||
-                              "Notification"}
-                          </p>
+                        <div
+                          className={[
+                            "flex size-9 shrink-0 items-center justify-center rounded-lg",
 
-                          <span className="shrink-0 text-[10px] text-muted-foreground">
-                            {formatTime(
-                              notification.created_at
-                            )}
-                          </span>
+                            unread
+                              ? "bg-primary/10 text-primary"
+                              : "bg-muted text-muted-foreground",
+                          ].join(
+                            " "
+                          )}
+                        >
+                          <Icon className="size-4" />
                         </div>
 
-                        <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                          {notification.message ||
-                            "You have a new notification."}
-                        </p>
+                        {/* Content */}
 
-                        {isUnread && (
-                          <div className="mt-2 flex items-center gap-1 text-[10px] font-medium text-primary">
-                            <span className="size-1.5 rounded-full bg-primary" />
-                            Unread
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-start justify-between gap-2">
+                            <p
+                              className={[
+                                "truncate text-sm",
+
+                                unread
+                                  ? "font-semibold text-foreground"
+                                  : "font-medium text-foreground/85",
+                              ].join(
+                                " "
+                              )}
+                            >
+                              {notification.title ||
+                                "Notification"}
+                            </p>
+
+                            {unread && (
+                              <span className="mt-1 size-2 shrink-0 rounded-full bg-primary" />
+                            )}
                           </div>
-                        )}
-                      </div>
-                    </button>
-                  );
-                }
-              )}
-            </div>
-          )}
 
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                            {notification.message ||
+                              "You have a new notification."}
+                          </p>
+
+                          <div className="mt-1.5 flex items-center justify-between gap-2">
+                            <span className="inline-flex items-center gap-1 text-[10px] text-muted-foreground">
+                              <Clock3 className="size-3" />
+
+                              {formatRelativeTime(
+                                notification.created_at
+                              )}
+                            </span>
+
+                            {isChat && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-medium text-primary">
+                                <MessageCircle className="size-3" />
+
+                                Team Chat
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  }
+                )}
+              </div>
+            )}
+
+          {/* ------------------------------------------------ */}
           {/* Footer */}
+          {/* ------------------------------------------------ */}
 
           <div className="border-t p-2">
             <Button
-              type="button"
+              asChild
               variant="ghost"
               className="w-full justify-center"
-              onClick={() => {
-                setOpen(false);
-                navigate(
-                  "/notifications"
-                );
-              }}
+              onClick={() =>
+                setOpen(false)
+              }
             >
-              View all notifications
-              <ExternalLink className="size-3.5" />
+              <Link to="/notifications">
+                View all notifications
+                <ExternalLink className="size-3.5" />
+              </Link>
             </Button>
           </div>
         </div>

@@ -49,6 +49,10 @@ import {
 import RealtimeSync from "@/components/RealtimeSync";
 import NotificationBell from "@/components/NotificationBell";
 
+import {
+  showAppToast,
+} from "@/components/AppToast";
+
 export default function AppShell() {
   const navigate =
     useNavigate();
@@ -98,9 +102,12 @@ export default function AppShell() {
       event
     ) {
       if (
-        event.key === "Escape"
+        event.key ===
+        "Escape"
       ) {
-        setMobileOpen(false);
+        setMobileOpen(
+          false
+        );
       }
     }
 
@@ -125,9 +132,12 @@ export default function AppShell() {
     useMemo(
       () => [
         {
-          label: "Overview",
-          to: "/dashboard",
-          icon: LayoutDashboard,
+          label:
+            "Overview",
+          to:
+            "/dashboard",
+          icon:
+            LayoutDashboard,
         },
         {
           label: "Teams",
@@ -135,24 +145,34 @@ export default function AppShell() {
           icon: Users,
         },
         {
-          label: "Projects",
-          to: "/projects",
-          icon: FolderKanban,
+          label:
+            "Projects",
+          to:
+            "/projects",
+          icon:
+            FolderKanban,
         },
         {
           label: "Tasks",
           to: "/tasks",
-          icon: CheckSquare,
+          icon:
+            CheckSquare,
         },
         {
-          label: "Notifications",
-          to: "/notifications",
-          icon: ClipboardList,
+          label:
+            "Notifications",
+          to:
+            "/notifications",
+          icon:
+            ClipboardList,
         },
         {
-          label: "Settings",
-          to: "/settings",
-          icon: Settings,
+          label:
+            "Settings",
+          to:
+            "/settings",
+          icon:
+            Settings,
         },
       ],
       []
@@ -164,13 +184,28 @@ export default function AppShell() {
 
   async function handleLogout() {
     try {
-      await supabase.auth.signOut({
-        scope: "local",
-      });
+      const {
+        error,
+      } =
+        await supabase.auth.signOut({
+          scope: "local",
+        });
+
+      if (error) {
+        throw error;
+      }
 
       dispatch(
         apiSlice.util.resetApiState()
       );
+
+      showAppToast({
+        type: "success",
+        title:
+          "Signed out",
+        message:
+          "You have been logged out successfully.",
+      });
 
       navigate(
         "/login",
@@ -183,6 +218,14 @@ export default function AppShell() {
         "Logout error:",
         error
       );
+
+      showAppToast({
+        type: "error",
+        title:
+          "Logout failed",
+        message:
+          "Unable to sign you out. Please try again.",
+      });
     }
   }
 
@@ -258,13 +301,18 @@ export default function AppShell() {
 
                 return (
                   <NavLink
-                    key={item.to}
-                    to={item.to}
+                    key={
+                      item.to
+                    }
+                    to={
+                      item.to
+                    }
                     className={({
                       isActive,
                     }) =>
                       [
                         "group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition-colors",
+
                         isActive
                           ? "bg-primary text-primary-foreground shadow-sm"
                           : "text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -278,14 +326,19 @@ export default function AppShell() {
                         <Icon
                           className={[
                             "size-4 shrink-0",
+
                             isActive
                               ? "text-primary-foreground"
                               : "text-muted-foreground group-hover:text-foreground",
-                          ].join(" ")}
+                          ].join(
+                            " "
+                          )}
                         />
 
                         <span>
-                          {item.label}
+                          {
+                            item.label
+                          }
                         </span>
                       </>
                     )}
@@ -309,11 +362,15 @@ export default function AppShell() {
 
               <div className="min-w-0 flex-1">
                 <p className="truncate text-sm font-medium">
-                  {displayName}
+                  {
+                    displayName
+                  }
                 </p>
 
                 <p className="truncate text-xs text-muted-foreground">
-                  {displayEmail}
+                  {
+                    displayEmail
+                  }
                 </p>
               </div>
 
@@ -367,6 +424,7 @@ export default function AppShell() {
       <aside
         className={[
           "fixed inset-y-0 left-0 z-50 w-72 border-r bg-background shadow-xl transition-transform duration-200 md:hidden",
+
           mobileOpen
             ? "translate-x-0"
             : "-translate-x-full",
@@ -413,11 +471,14 @@ export default function AppShell() {
                   "/dashboard"
                     ? "Overview"
                     : navigationItems.find(
-                        (item) =>
+                        (
+                          item
+                        ) =>
                           location.pathname.startsWith(
                             item.to
                           )
-                      )?.label ||
+                      )
+                        ?.label ||
                       "Workspace"}
                 </span>
               </div>
@@ -443,11 +504,15 @@ export default function AppShell() {
               <div className="ml-2 hidden items-center gap-3 sm:flex">
                 <div className="text-right">
                   <p className="max-w-40 truncate text-sm font-medium">
-                    {displayName}
+                    {
+                      displayName
+                    }
                   </p>
 
                   <p className="max-w-40 truncate text-xs text-muted-foreground">
-                    {displayEmail}
+                    {
+                      displayEmail
+                    }
                   </p>
                 </div>
 
@@ -485,4 +550,3 @@ export default function AppShell() {
     </div>
   );
 }
-

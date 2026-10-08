@@ -1,6 +1,4 @@
 
-import { useState } from "react";
-
 import {
   useForm,
 } from "react-hook-form";
@@ -62,27 +60,76 @@ import {
   Label,
 } from "@/components/ui/label";
 
-const loginSchema = z.object({
-  email: z
-    .string()
-    .trim()
-    .email("Please enter a valid email address."),
+import {
+  showAppToast,
+} from "@/components/AppToast";
 
-  password: z
-    .string()
-    .min(
-      6,
-      "Password must contain at least 6 characters."
-    ),
-});
+// ==========================================================
+// Validation
+// ==========================================================
+
+const loginSchema =
+  z.object({
+    email: z
+      .string()
+      .trim()
+      .email(
+        "Please enter a valid email address."
+      ),
+
+    password: z
+      .string()
+      .min(
+        6,
+        "Password must contain at least 6 characters."
+      ),
+  });
+
+// ==========================================================
+// Safe authentication error message
+// ==========================================================
+
+function getLoginErrorMessage(
+  error
+) {
+  const code =
+    error?.code ||
+    error?.status;
+
+  switch (code) {
+    case "invalid_credentials":
+      return "The email or password is incorrect.";
+
+    case "email_not_confirmed":
+      return "Please confirm your email before signing in.";
+
+    case "user_not_found":
+      return "The email or password is incorrect.";
+
+    case "too_many_requests":
+      return "Too many sign-in attempts. Please try again later.";
+
+    case "network_error":
+      return "Unable to connect to the authentication service.";
+
+    default:
+      return "Unable to sign in. Please check your credentials and try again.";
+  }
+}
+
+// ==========================================================
+// Component
+// ==========================================================
 
 export default function Login() {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const dispatch = useDispatch();
+  const navigate =
+    useNavigate();
 
-  const [serverError, setServerError] =
-    useState("");
+  const location =
+    useLocation();
+
+  const dispatch =
+    useDispatch();
 
   const {
     register,
@@ -91,56 +138,115 @@ export default function Login() {
       errors,
       isSubmitting,
     },
-  } = useForm({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-    },
-  });
+  } =
+    useForm({
+      resolver:
+        zodResolver(
+          loginSchema
+        ),
 
-  async function onSubmit(values) {
-    setServerError("");
+      defaultValues: {
+        email: "",
+        password: "",
+      },
+    });
 
+  // ========================================================
+  // Submit
+  // ========================================================
+
+  async function onSubmit(
+    values
+  ) {
     try {
       const {
         data,
         error,
-      } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
-      });
+      } =
+        await supabase.auth.signInWithPassword(
+          {
+            email:
+              values.email.trim(),
+            password:
+              values.password,
+          }
+        );
 
       if (error) {
-        setServerError(
-          error.message ||
-            "Unable to sign in."
+        console.error(
+          "Login authentication error:",
+          error
         );
+
+        showAppToast({
+          type: "error",
+          title:
+            "Sign in failed",
+          message:
+            getLoginErrorMessage(
+              error
+            ),
+        });
+
+        return;
+      }
+
+      if (!data?.session) {
+        showAppToast({
+          type: "error",
+          title:
+            "Sign in failed",
+          message:
+            "No valid session was created. Please try again.",
+        });
+
         return;
       }
 
       dispatch(
-        setSession(data.session)
+        setSession(
+          data.session
+        )
       );
 
+      showAppToast({
+        type: "success",
+        title:
+          "Welcome back",
+        message:
+          "You have been signed in successfully.",
+      });
+
       const destination =
-        location.state?.from?.pathname ||
+        location.state?.from
+          ?.pathname ||
         "/";
 
-      navigate(destination, {
-        replace: true,
-      });
+      navigate(
+        destination,
+        {
+          replace: true,
+        }
+      );
     } catch (error) {
       console.error(
         "Login Error:",
         error
       );
 
-      setServerError(
-        "Something went wrong. Please try again."
-      );
+      showAppToast({
+        type: "error",
+        title:
+          "Sign in failed",
+        message:
+          "Something went wrong. Please try again.",
+      });
     }
   }
+
+  // ========================================================
+  // Render
+  // ========================================================
 
   return (
     <main className="min-h-svh bg-background px-4 py-12">
@@ -163,6 +269,7 @@ export default function Login() {
             <CardHeader className="space-y-4">
               <div className="flex items-center gap-2 text-sm font-semibold uppercase tracking-[0.18em] text-primary">
                 <Sparkles className="size-4" />
+
                 WorkFlow
               </div>
 
@@ -182,13 +289,10 @@ export default function Login() {
                 onSubmit={handleSubmit(
                   onSubmit
                 )}
+                noValidate
                 className="space-y-5"
               >
-                {serverError && (
-                  <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-                    {serverError}
-                  </div>
-                )}
+                {/* Email */}
 
                 <div className="space-y-2">
                   <Label htmlFor="email">
@@ -202,18 +306,31 @@ export default function Login() {
                       id="email"
                       type="email"
                       placeholder="you@example.com"
-                      className="pl-10"
+                      className={[
+                        "pl-10",
+                        errors.email
+                          ? "border-destructive focus-visible:ring-destructive"
+                          : "",
+                      ].join(" ")}
                       autoComplete="email"
-                      {...register("email")}
+                      {...register(
+                        "email"
+                      )}
                     />
                   </div>
 
                   {errors.email && (
                     <p className="text-sm text-destructive">
-                      {errors.email.message}
+                      {
+                        errors
+                          .email
+                          .message
+                      }
                     </p>
                   )}
                 </div>
+
+                {/* Password */}
 
                 <div className="space-y-2">
                   <Label htmlFor="password">
@@ -227,7 +344,12 @@ export default function Login() {
                       id="password"
                       type="password"
                       placeholder="••••••••"
-                      className="pl-10"
+                      className={[
+                        "pl-10",
+                        errors.password
+                          ? "border-destructive focus-visible:ring-destructive"
+                          : "",
+                      ].join(" ")}
                       autoComplete="current-password"
                       {...register(
                         "password"
@@ -237,19 +359,28 @@ export default function Login() {
 
                   {errors.password && (
                     <p className="text-sm text-destructive">
-                      {errors.password.message}
+                      {
+                        errors
+                          .password
+                          .message
+                      }
                     </p>
                   )}
                 </div>
 
+                {/* Submit */}
+
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={isSubmitting}
+                  disabled={
+                    isSubmitting
+                  }
                 >
                   {isSubmitting ? (
                     <>
                       <LoaderCircle className="size-4 animate-spin" />
+
                       Signing in...
                     </>
                   ) : (
@@ -257,8 +388,11 @@ export default function Login() {
                   )}
                 </Button>
 
+                {/* Register */}
+
                 <p className="text-center text-sm text-muted-foreground">
                   Don't have an account?{" "}
+
                   <Link
                     to="/register"
                     className="font-semibold text-primary hover:underline"
@@ -274,4 +408,3 @@ export default function Login() {
     </main>
   );
 }
-

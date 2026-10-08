@@ -35,14 +35,16 @@ import {
   useMarkNotificationReadMutation,
 } from "@/store/api/apiSlice";
 
-// =========================
+// ============================================================
 // Helpers
-// =========================
+// ============================================================
 
 function getNotificationIcon(
   notificationType
 ) {
-  switch (notificationType) {
+  switch (
+    notificationType
+  ) {
     case "task_assigned":
       return UserPlus;
 
@@ -55,6 +57,9 @@ function getNotificationIcon(
     case "task_updated":
       return ListTodo;
 
+    case "chat_message":
+      return MessageCircle;
+
     default:
       return Bell;
   }
@@ -63,7 +68,9 @@ function getNotificationIcon(
 function getNotificationLabel(
   notificationType
 ) {
-  switch (notificationType) {
+  switch (
+    notificationType
+  ) {
     case "task_assigned":
       return "Task Assignment";
 
@@ -75,6 +82,9 @@ function getNotificationLabel(
 
     case "task_updated":
       return "Task Update";
+
+    case "chat_message":
+      return "Team Chat";
 
     default:
       return "Notification";
@@ -92,7 +102,9 @@ function formatNotificationTime(
     new Date(createdAt);
 
   if (
-    Number.isNaN(date.getTime())
+    Number.isNaN(
+      date.getTime()
+    )
   ) {
     return "";
   }
@@ -117,12 +129,15 @@ function getDateGroup(
     new Date(createdAt);
 
   if (
-    Number.isNaN(date.getTime())
+    Number.isNaN(
+      date.getTime()
+    )
   ) {
     return "Earlier";
   }
 
-  const now = new Date();
+  const now =
+    new Date();
 
   const todayStart =
     new Date(
@@ -133,16 +148,24 @@ function getDateGroup(
 
   const yesterdayStart =
     new Date(
-      todayStart
-        .getTime() -
-        24 * 60 * 60 * 1000
+      todayStart.getTime() -
+        24 *
+          60 *
+          60 *
+          1000
     );
 
-  if (date >= todayStart) {
+  if (
+    date >=
+    todayStart
+  ) {
     return "Today";
   }
 
-  if (date >= yesterdayStart) {
+  if (
+    date >=
+    yesterdayStart
+  ) {
     return "Yesterday";
   }
 
@@ -152,44 +175,81 @@ function getDateGroup(
 function sortNotifications(
   notifications
 ) {
-  return [...notifications].sort(
-    (a, b) => {
-      const first = new Date(
-        a.created_at || 0
-      ).getTime();
-
-      const second = new Date(
-        b.created_at || 0
-      ).getTime();
-
-      return second - first;
-    }
+  return [
+    ...notifications,
+  ].sort(
+    (a, b) =>
+      new Date(
+        b.created_at ||
+          0
+      ).getTime() -
+      new Date(
+        a.created_at ||
+          0
+      ).getTime()
   );
 }
 
-// =========================
+function getNotificationDestination(
+  notification
+) {
+  if (
+    notification.notification_type ===
+      "chat_message" &&
+    notification.team_id
+  ) {
+    const query =
+      notification.chat_message_id
+        ? `?message=${notification.chat_message_id}`
+        : "";
+
+    return `/teams/${notification.team_id}/chat${query}`;
+  }
+
+  if (
+    notification.task_id
+  ) {
+    return `/tasks/${notification.task_id}`;
+  }
+
+  if (
+    notification.project_id
+  ) {
+    return `/projects/${notification.project_id}`;
+  }
+
+  return null;
+}
+
+// ============================================================
 // Component
-// =========================
+// ============================================================
 
 export default function Notifications() {
-  const navigate = useNavigate();
+  const navigate =
+    useNavigate();
 
-  const userId = useSelector(
-    (state) =>
-      state.auth.user?.id
-  );
+  const userId =
+    useSelector(
+      (state) =>
+        state.auth.user
+          ?.id
+    );
 
   const [
     activeTab,
     setActiveTab,
-  ] = useState("all");
+  ] = useState(
+    "all"
+  );
 
-  // =========================
-  // Notifications Query
-  // =========================
+  // ==========================================================
+  // Query
+  // ==========================================================
 
   const {
-    data: notifications = [],
+    data:
+      notifications = [],
     isLoading,
     isFetching,
     isError,
@@ -198,13 +258,14 @@ export default function Notifications() {
     useGetMyNotificationsQuery(
       userId,
       {
-        skip: !userId,
+        skip:
+          !userId,
       }
     );
 
-  // =========================
+  // ==========================================================
   // Mutations
-  // =========================
+  // ==========================================================
 
   const [
     markNotificationRead,
@@ -224,32 +285,32 @@ export default function Notifications() {
   ] =
     useMarkAllNotificationsReadMutation();
 
-  // =========================
-  // Sorted notifications
-  // =========================
+  // ==========================================================
+  // Data
+  // ==========================================================
 
   const sortedNotifications =
-    useMemo(() => {
-      return sortNotifications(
-        notifications
-      );
-    }, [notifications]);
-
-  // =========================
-  // Unread count
-  // =========================
+    useMemo(
+      () =>
+        sortNotifications(
+          notifications
+        ),
+      [notifications]
+    );
 
   const unreadCount =
-    useMemo(() => {
-      return sortedNotifications.filter(
-        (notification) =>
-          !notification.is_read
-      ).length;
-    }, [sortedNotifications]);
-
-  // =========================
-  // Filter
-  // =========================
+    useMemo(
+      () =>
+        sortedNotifications.filter(
+          (
+            notification
+          ) =>
+            !notification.is_read
+        ).length,
+      [
+        sortedNotifications,
+      ]
+    );
 
   const filteredNotifications =
     useMemo(() => {
@@ -258,7 +319,9 @@ export default function Notifications() {
         "unread"
       ) {
         return sortedNotifications.filter(
-          (notification) =>
+          (
+            notification
+          ) =>
             !notification.is_read
         );
       }
@@ -269,10 +332,6 @@ export default function Notifications() {
       sortedNotifications,
     ]);
 
-  // =========================
-  // Group
-  // =========================
-
   const groupedNotifications =
     useMemo(() => {
       const groups = {
@@ -282,13 +341,17 @@ export default function Notifications() {
       };
 
       filteredNotifications.forEach(
-        (notification) => {
+        (
+          notification
+        ) => {
           const group =
             getDateGroup(
               notification.created_at
             );
 
-          groups[group].push(
+          groups[
+            group
+          ].push(
             notification
           );
         }
@@ -299,9 +362,9 @@ export default function Notifications() {
       filteredNotifications,
     ]);
 
-  // =========================
-  // Mark one as read
-  // =========================
+  // ==========================================================
+  // Read
+  // ==========================================================
 
   async function handleMarkAsRead(
     notification
@@ -317,7 +380,9 @@ export default function Notifications() {
       await markNotificationRead(
         notification.id
       ).unwrap();
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "Unable to mark notification as read:",
         error
@@ -325,9 +390,9 @@ export default function Notifications() {
     }
   }
 
-  // =========================
+  // ==========================================================
   // Open notification
-  // =========================
+  // ==========================================================
 
   async function handleOpenNotification(
     notification
@@ -336,28 +401,23 @@ export default function Notifications() {
       notification
     );
 
-    if (notification.task_id) {
-      navigate(
-        `/tasks/${notification.task_id}`
+    const destination =
+      getNotificationDestination(
+        notification
       );
-
-      return;
-    }
 
     if (
-      notification.project_id
+      destination
     ) {
       navigate(
-        `/projects/${notification.project_id}`
+        destination
       );
-
-      return;
     }
   }
 
-  // =========================
-  // Mark all as read
-  // =========================
+  // ==========================================================
+  // Mark all
+  // ==========================================================
 
   async function handleMarkAllAsRead() {
     if (
@@ -369,7 +429,9 @@ export default function Notifications() {
 
     try {
       await markAllNotificationsRead().unwrap();
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "Unable to mark all notifications as read:",
         error
@@ -377,9 +439,9 @@ export default function Notifications() {
     }
   }
 
-  // =========================
-  // Render notification
-  // =========================
+  // ==========================================================
+  // Notification card
+  // ==========================================================
 
   function renderNotification(
     notification
@@ -397,22 +459,93 @@ export default function Notifications() {
     const isUnread =
       !notification.is_read;
 
+    const isChat =
+      notification.notification_type ===
+        "chat_message" &&
+      Boolean(
+        notification.team_id
+      );
+
     const hasDestination =
       Boolean(
-        notification.task_id ||
-        notification.project_id
+        getNotificationDestination(
+          notification
+        )
       );
+
+    function handleCardClick() {
+      if (
+        isChat
+      ) {
+        handleOpenNotification(
+          notification
+        );
+      }
+    }
+
+    function handleCardKeyDown(
+      event
+    ) {
+      if (
+        !isChat
+      ) {
+        return;
+      }
+
+      if (
+        event.key ===
+          "Enter" ||
+        event.key ===
+          " "
+      ) {
+        event.preventDefault();
+
+        handleOpenNotification(
+          notification
+        );
+      }
+    }
 
     return (
       <div
-        key={notification.id}
+        key={
+          notification.id
+        }
+        role={
+          isChat
+            ? "button"
+            : undefined
+        }
+        tabIndex={
+          isChat
+            ? 0
+            : undefined
+        }
+        onClick={
+          isChat
+            ? handleCardClick
+            : undefined
+        }
+        onKeyDown={
+          isChat
+            ? handleCardKeyDown
+            : undefined
+        }
         className={[
           "group rounded-2xl border p-4 transition-all",
+
           isUnread
             ? "border-primary/20 bg-primary/[0.04] shadow-sm"
             : "border-border bg-card",
+
           "hover:border-primary/30",
-        ].join(" ")}
+
+          isChat
+            ? "cursor-pointer"
+            : "",
+        ].join(
+          " "
+        )}
       >
         <div className="flex items-start gap-4">
           {/* Icon */}
@@ -420,10 +553,13 @@ export default function Notifications() {
           <div
             className={[
               "flex size-10 shrink-0 items-center justify-center rounded-xl",
+
               isUnread
                 ? "bg-primary/10 text-primary"
                 : "bg-muted text-muted-foreground",
-            ].join(" ")}
+            ].join(
+              " "
+            )}
           >
             <Icon className="size-5" />
           </div>
@@ -438,6 +574,12 @@ export default function Notifications() {
                     {label}
                   </span>
 
+                  {isChat && (
+                    <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-semibold text-primary">
+                      Open Chat
+                    </span>
+                  )}
+
                   {isUnread && (
                     <span className="size-2 rounded-full bg-primary" />
                   )}
@@ -449,7 +591,9 @@ export default function Notifications() {
                     isUnread
                       ? "text-foreground"
                       : "text-foreground/85",
-                  ].join(" ")}
+                  ].join(
+                    " "
+                  )}
                 >
                   {notification.title ||
                     "Notification"}
@@ -467,7 +611,7 @@ export default function Notifications() {
               </div>
             </div>
 
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
               {notification.message ||
                 "You have a new notification."}
             </p>
@@ -484,11 +628,15 @@ export default function Notifications() {
                       ? "default"
                       : "outline"
                   }
-                  onClick={() =>
+                  onClick={(
+                    event
+                  ) => {
+                    event.stopPropagation();
+
                     handleOpenNotification(
                       notification
-                    )
-                  }
+                    );
+                  }}
                 >
                   Open
                   <ExternalLink className="size-3.5" />
@@ -510,15 +658,26 @@ export default function Notifications() {
                   disabled={
                     isMarkingRead
                   }
-                  onClick={() =>
+                  onClick={(
+                    event
+                  ) => {
+                    event.stopPropagation();
+
                     handleMarkAsRead(
                       notification
-                    )
-                  }
+                    );
+                  }}
                 >
                   <Check className="size-3.5" />
                   Mark as read
                 </Button>
+              )}
+
+              {isChat && (
+                <span className="ml-auto inline-flex items-center gap-1 text-xs font-medium text-primary">
+                  <MessageCircle className="size-3.5" />
+                  Click to open conversation
+                </span>
               )}
             </div>
           </div>
@@ -527,9 +686,9 @@ export default function Notifications() {
     );
   }
 
-  // =========================
+  // ==========================================================
   // Page
-  // =========================
+  // ==========================================================
 
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-8 md:px-6 md:py-10">
@@ -552,12 +711,10 @@ export default function Notifications() {
           </h1>
 
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground md:text-base">
-            Stay updated with task assignments,
-            comments, and project activity.
+            Stay updated with tasks, comments,
+            teams, and chat activity.
           </p>
         </div>
-
-        {/* Header actions */}
 
         <div className="flex items-center gap-2">
           <Button
@@ -571,7 +728,6 @@ export default function Notifications() {
               isFetching
             }
             aria-label="Refresh notifications"
-            title="Refresh notifications"
           >
             <RefreshCw
               className={[
@@ -579,7 +735,9 @@ export default function Notifications() {
                 isFetching
                   ? "animate-spin"
                   : "",
-              ].join(" ")}
+              ].join(
+                " "
+              )}
             />
           </Button>
 
@@ -609,7 +767,9 @@ export default function Notifications() {
           </div>
 
           <div className="mt-1 text-2xl font-semibold">
-            {sortedNotifications.length}
+            {
+              sortedNotifications.length
+            }
           </div>
         </div>
 
@@ -630,43 +790,61 @@ export default function Notifications() {
         <button
           type="button"
           onClick={() =>
-            setActiveTab("all")
+            setActiveTab(
+              "all"
+            )
           }
           className={[
             "flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
-            activeTab === "all"
+
+            activeTab ===
+            "all"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
-          ].join(" ")}
+          ].join(
+            " "
+          )}
         >
           All
 
           <span className="ml-2 text-xs text-muted-foreground">
-            {sortedNotifications.length}
+            {
+              sortedNotifications.length
+            }
           </span>
         </button>
 
         <button
           type="button"
           onClick={() =>
-            setActiveTab("unread")
+            setActiveTab(
+              "unread"
+            )
           }
           className={[
             "flex-1 rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
-            activeTab === "unread"
+
+            activeTab ===
+            "unread"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground",
-          ].join(" ")}
+          ].join(
+            " "
+          )}
         >
           Unread
 
           <span
             className={[
               "ml-2 text-xs",
-              unreadCount > 0
+
+              unreadCount >
+              0
                 ? "font-semibold text-primary"
                 : "text-muted-foreground",
-            ].join(" ")}
+            ].join(
+              " "
+            )}
           >
             {unreadCount}
           </span>
@@ -711,9 +889,14 @@ export default function Notifications() {
           {Array.from({
             length: 4,
           }).map(
-            (_, index) => (
+            (
+              _,
+              index
+            ) => (
               <div
-                key={index}
+                key={
+                  index
+                }
                 className="animate-pulse rounded-2xl border bg-card p-5"
               >
                 <div className="flex gap-4">
@@ -737,7 +920,8 @@ export default function Notifications() {
 
       {!isLoading &&
         !isError &&
-        filteredNotifications.length === 0 && (
+        filteredNotifications.length ===
+          0 && (
           <div className="flex min-h-80 flex-col items-center justify-center rounded-3xl border border-dashed bg-card/50 p-8 text-center">
             <div className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-muted">
               <Bell className="size-6 text-muted-foreground" />
@@ -754,7 +938,7 @@ export default function Notifications() {
               {activeTab ===
               "unread"
                 ? "There are no unread notifications right now."
-                : "New activity related to your tasks and projects will appear here."}
+                : "New activity related to your tasks, projects, teams, and chat will appear here."}
             </p>
           </div>
         )}
@@ -770,42 +954,53 @@ export default function Notifications() {
               "Today",
               "Yesterday",
               "Earlier",
-            ].map((group) => {
-              const items =
-                groupedNotifications[
-                  group
-                ];
+            ].map(
+              (
+                group
+              ) => {
+                const items =
+                  groupedNotifications[
+                    group
+                  ];
 
-              if (!items.length) {
-                return null;
+                if (
+                  !items.length
+                ) {
+                  return null;
+                }
+
+                return (
+                  <section
+                    key={
+                      group
+                    }
+                  >
+                    <div className="mb-3 flex items-center gap-3">
+                      <h2 className="text-sm font-semibold">
+                        {group}
+                      </h2>
+
+                      <div className="h-px flex-1 bg-border" />
+
+                      <span className="text-xs text-muted-foreground">
+                        {
+                          items.length
+                        }
+                      </span>
+                    </div>
+
+                    <div className="space-y-3">
+                      {items.map(
+                        renderNotification
+                      )}
+                    </div>
+                  </section>
+                );
               }
-
-              return (
-                <section
-                  key={group}
-                >
-                  <div className="mb-3 flex items-center gap-3">
-                    <h2 className="text-sm font-semibold">
-                      {group}
-                    </h2>
-
-                    <div className="h-px flex-1 bg-border" />
-
-                    <span className="text-xs text-muted-foreground">
-                      {items.length}
-                    </span>
-                  </div>
-
-                  <div className="space-y-3">
-                    {items.map(
-                      renderNotification
-                    )}
-                  </div>
-                </section>
-              );
-            })}
+            )}
           </div>
         )}
     </div>
   );
 }
+
