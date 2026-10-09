@@ -19,9 +19,11 @@ import {
 } from "react-redux";
 
 import {
+  BarChart3,
   CheckSquare,
   ChevronLeft,
   ClipboardList,
+  FileSpreadsheet,
   FolderKanban,
   LayoutDashboard,
   LogOut,
@@ -53,6 +55,10 @@ import {
 
 import RealtimeSync from "@/components/RealtimeSync";
 import NotificationBell from "@/components/NotificationBell";
+
+// ============================================================
+// App Shell
+// ============================================================
 
 export default function AppShell() {
   const navigate =
@@ -153,6 +159,16 @@ export default function AppShell() {
           label: "Meetings",
           to: "/meetings",
           icon: Video,
+        },
+        {
+          label: "Reports",
+          to: "/reports",
+          icon: BarChart3,
+        },
+        {
+          label: "Import Data",
+          to: "/import-data",
+          icon: FileSpreadsheet,
         },
         {
           label: "Notifications",
@@ -267,9 +283,7 @@ export default function AppShell() {
               variant="ghost"
               size="icon"
               onClick={() =>
-                setMobileOpen(
-                  false
-                )
+                setMobileOpen(false)
               }
               aria-label="Close navigation"
             >
@@ -350,9 +364,7 @@ export default function AppShell() {
 
               <button
                 type="button"
-                onClick={
-                  handleLogout
-                }
+                onClick={handleLogout}
                 className="rounded-lg p-2 text-muted-foreground transition-colors hover:bg-background hover:text-destructive"
                 aria-label="Logout"
                 title="Logout"
@@ -365,6 +377,10 @@ export default function AppShell() {
       </div>
     );
   }
+
+  // ==========================================================
+  // Layout
+  // ==========================================================
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -385,9 +401,7 @@ export default function AppShell() {
           type="button"
           aria-label="Close navigation"
           onClick={() =>
-            setMobileOpen(
-              false
-            )
+            setMobileOpen(false)
           }
           className="fixed inset-0 z-40 bg-black/40 backdrop-blur-[2px] md:hidden"
         />
@@ -423,9 +437,7 @@ export default function AppShell() {
                 size="icon"
                 className="md:hidden"
                 onClick={() =>
-                  setMobileOpen(
-                    true
-                  )
+                  setMobileOpen(true)
                 }
                 aria-label="Open navigation"
               >
@@ -445,8 +457,9 @@ export default function AppShell() {
                     ? "Overview"
                     : navigationItems.find(
                         (item) =>
+                          location.pathname === item.to ||
                           location.pathname.startsWith(
-                            item.to
+                            `${item.to}/`
                           )
                       )?.label ||
                       "Workspace"}
@@ -461,15 +474,9 @@ export default function AppShell() {
             {/* Right */}
 
             <div className="flex items-center gap-1">
-              {/* Theme */}
-
               <ThemeToggle />
 
-              {/* Notifications */}
-
               <NotificationBell />
-
-              {/* User */}
 
               <div className="ml-2 hidden items-center gap-3 sm:flex">
                 <div className="text-right">
@@ -495,9 +502,7 @@ export default function AppShell() {
                 variant="ghost"
                 size="icon"
                 className="sm:hidden"
-                onClick={
-                  handleLogout
-                }
+                onClick={handleLogout}
                 aria-label="Logout"
                 title="Logout"
               >

@@ -11,13 +11,15 @@ import AppShell from "@/layouts/AppShell";
 
 import ComingSoon from "@/pages/ComingSoon";
 import Dashboard from "@/pages/Dashboard";
+import ImportData from "@/pages/ImportData";
 import Login from "@/pages/Login";
-import Meetings from "@/pages/Meetings";
 import MeetingDetails from "@/pages/MeetingDetails";
+import Meetings from "@/pages/Meetings";
 import Notifications from "@/pages/Notifications";
 import ProjectDetails from "@/pages/ProjectDetails";
 import Projects from "@/pages/Projects";
 import Register from "@/pages/Register";
+import Reports from "@/pages/Reports";
 import Settings from "@/pages/Settings";
 import TaskDetails from "@/pages/TaskDetails";
 import Tasks from "@/pages/Tasks";
@@ -67,9 +69,7 @@ export default function App() {
       storageKey="workflow-theme"
     >
       <Routes>
-        {/* ================================================== */}
         {/* Guest Routes */}
-        {/* ================================================== */}
 
         <Route element={<GuestRoute />}>
           <Route
@@ -83,9 +83,7 @@ export default function App() {
           />
         </Route>
 
-        {/* ================================================== */}
         {/* Protected Routes */}
-        {/* ================================================== */}
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AppShell />}>
@@ -168,6 +166,20 @@ export default function App() {
               element={<TaskDetails />}
             />
 
+            {/* Reports */}
+
+            <Route
+              path="/reports"
+              element={<Reports />}
+            />
+
+            {/* Data Import */}
+
+            <Route
+              path="/import-data"
+              element={<ImportData />}
+            />
+
             {/* Notifications */}
 
             <Route
@@ -188,9 +200,7 @@ export default function App() {
           </Route>
         </Route>
 
-        {/* ================================================== */}
         {/* Not Found */}
-        {/* ================================================== */}
 
         <Route
           path="*"
@@ -198,9 +208,7 @@ export default function App() {
         />
       </Routes>
 
-      {/* ================================================== */}
       {/* Global Toast */}
-      {/* ================================================== */}
 
       <AppToast />
     </ThemeProvider>

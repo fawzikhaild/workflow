@@ -1,7 +1,5 @@
 
-import {
-  apiSlice as baseApi,
-} from "./apiBase";
+import { apiSlice as baseApi } from "./apiBase";
 
 import {
   useGetMyProfileQuery,
@@ -39,6 +37,10 @@ import {
   useUpdateTaskMutation,
   useDeleteTaskMutation,
 } from "./tasksApi";
+
+import {
+  useBulkImportTasksMutation,
+} from "./taskImportApi";
 
 import {
   useGetTaskByIdQuery,
@@ -89,29 +91,24 @@ import {
   useModerateMeetingMutation,
 } from "./meetingModerationApi";
 
-export const apiSlice =
-  baseApi;
+import {
+  useGetReportsDataQuery,
+} from "./reportsApi";
+
+export const apiSlice = baseApi;
 
 export {
-  // Profile
-
   useGetMyProfileQuery,
-
-  // Teams
 
   useGetMyTeamsQuery,
   useCreateTeamMutation,
   useUpdateTeamMutation,
   useDeleteTeamMutation,
 
-  // Team Members
-
   useGetTeamMembersQuery,
   useAddTeamMemberMutation,
   useUpdateTeamMemberRoleMutation,
   useRemoveTeamMemberMutation,
-
-  // Projects
 
   useGetMyProjectsQuery,
   useGetProjectByIdQuery,
@@ -119,46 +116,33 @@ export {
   useUpdateProjectMutation,
   useDeleteProjectMutation,
 
-  // Project Permissions
-
   useGetMyProjectAccessQuery,
-
-  // Tasks
 
   useGetProjectTasksQuery,
   useCreateTaskMutation,
   useUpdateTaskMutation,
   useDeleteTaskMutation,
 
-  // Task Details
+  // Task import
+  useBulkImportTasksMutation,
 
   useGetTaskByIdQuery,
-
-  // Comments
 
   useGetTaskCommentsQuery,
   useAddTaskCommentMutation,
   useDeleteTaskCommentMutation,
 
-  // Activity
-
   useGetTaskActivityQuery,
-
-  // Notifications
 
   useGetMyNotificationsQuery,
   useMarkNotificationReadMutation,
   useMarkAllNotificationsReadMutation,
-
-  // Team Chat
 
   useGetTeamChatMessagesQuery,
   useSendTeamChatMessageMutation,
   useUpdateTeamChatMessageMutation,
   useDeleteTeamChatMessageMutation,
   useGetTeamChatAttachmentUrlMutation,
-
-  // Meetings
 
   useGetMyMeetingsQuery,
   useGetMeetingByIdQuery,
@@ -168,14 +152,13 @@ export {
   useStartMeetingMutation,
   useEndMeetingMutation,
 
-  // Meeting Participants
-
   useGetMeetingParticipantsQuery,
   useAddMeetingParticipantMutation,
   useRemoveMeetingParticipantMutation,
   useUpdateMeetingParticipantStatusMutation,
 
-  // Meeting Moderation
-
   useModerateMeetingMutation,
+
+  // Reports
+  useGetReportsDataQuery,
 };
