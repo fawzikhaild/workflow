@@ -1,5 +1,6 @@
 
 import {
+  useCallback,
   useEffect,
   useMemo,
   useState,
@@ -451,9 +452,7 @@ export default function MeetingDetails() {
 
       setIsJoined(true);
 
-      toast.success(
-        "Joined the meeting."
-      );
+      // Show successful connection after LiveKit connects and media is initialized.
     } catch (error) {
       console.error(
         "Join Meeting Error:",
@@ -574,6 +573,74 @@ export default function MeetingDetails() {
       );
     }
   }
+
+  // ==========================================================
+  // Enable local camera/microphone for every authorized user
+  // ==========================================================
+
+  const handleLiveKitConnected = useCallback(async () => {
+    const results = await Promise.allSettled([
+      room.localParticipant.setCameraEnabled(true),
+      room.localParticipant.setMicrophoneEnabled(true),
+    ]);
+
+    const mediaErrors = [];
+
+    if (results[0].status === "rejected") {
+      const error = results[0].reason;
+      mediaErrors.push(
+        `Camera: ${error?.message || "Unable to access the camera."}`
+      );
+    }
+
+    if (results[1].status === "rejected") {
+      const error = results[1].reason;
+      mediaErrors.push(
+        `Microphone: ${error?.message || "Unable to access the microphone."}`
+      );
+    }
+
+    if (mediaErrors.length > 0) {
+      const message = `${mediaErrors.join(" ")} Check browser permissions and make sure another application is not using the device. You can retry below.`;
+      setErrorMessage(message);
+      toast.error(message);
+      return;
+    }
+
+    setErrorMessage("");
+    toast.success("Camera and microphone are ready.");
+  }, [room]);
+
+  const handleLiveKitError = useCallback((error) => {
+    console.error("LiveKit Connection Error:", error);
+
+    const message =
+      error?.message ||
+      "Unable to connect to the meeting. Please try joining again.";
+
+    setErrorMessage(message);
+    toast.error(message);
+  }, []);
+
+  const handleMediaDeviceFailure = useCallback((failure, kind) => {
+    console.error("LiveKit Media Device Error:", {
+      failure,
+      kind,
+    });
+
+    const deviceName =
+      kind === "videoinput"
+        ? "camera"
+        : kind === "audioinput"
+          ? "microphone"
+          : "media device";
+
+    const message =
+      `The ${deviceName} could not be started. Allow camera/microphone access for this site, check that the device is connected, then retry.`;
+
+    setErrorMessage(message);
+    toast.error(message);
+  }, []);
 
   // ==========================================================
   // Loading
@@ -787,7 +854,19 @@ export default function MeetingDetails() {
 
       {errorMessage && (
         <div className="mb-5 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          {errorMessage}
+          <p>{errorMessage}</p>
+          {isJoined && (
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-3"
+              onClick={() => {
+                void handleLiveKitConnected();
+              }}
+            >
+              Retry camera and microphone
+            </Button>
+          )}
         </div>
       )}
 
@@ -860,12 +939,13 @@ export default function MeetingDetails() {
                 livekitUrl
               }
               connect
-              audio
-              video
+              audio={false}
+              video={false}
+              onConnected={handleLiveKitConnected}
+              onError={handleLiveKitError}
+              onMediaDeviceFailure={handleMediaDeviceFailure}
               onDisconnected={() => {
-                setIsJoined(
-                  false
-                );
+                setIsJoined(false);
               }}
               className="min-h-[680px] overflow-hidden rounded-2xl border bg-black"
             >
